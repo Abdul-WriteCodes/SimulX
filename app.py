@@ -346,10 +346,10 @@ create table if not exists doc_chunks (
     embedding    vector(1536)
 );
 
--- Index for fast similarity search
+-- Index for fast similarity search (HNSW — scales better than ivfflat for large libraries)
 create index if not exists doc_chunks_embedding_idx
-    on doc_chunks using ivfflat (embedding vector_cosine_ops)
-    with (lists = 100);
+    on doc_chunks using hnsw (embedding vector_cosine_ops)
+    with (m = 16, ef_construction = 64);
 
 -- ── RPC: Semantic chunk retrieval ──────────────────────────────────────────
 -- Called by the RAG extractor to fetch the most relevant chunks per document.
@@ -524,11 +524,12 @@ def extract_text_from_file(uploaded_file) -> str:
         # Sort by chunk index to preserve reading order
         ranked_chunks.sort(key=lambda x: x[1])
 
-        # Build final context — cap at ~15,000 chars
+        # Build final context — cap at ~35,000 chars per source
+        # (raised from 15k — covers ~50-60 pages of a dissertation comfortably)
         final_parts = []
         total_chars = 0
         for _, _, text_chunk in ranked_chunks:
-            if total_chars + len(text_chunk) > 15000:
+            if total_chars + len(text_chunk) > 35000:
                 break
             final_parts.append(text_chunk)
             total_chars += len(text_chunk)
@@ -537,8 +538,8 @@ def extract_text_from_file(uploaded_file) -> str:
 
     except Exception:
         # ── Graceful fallback: original front+back slice ───────────
-        FRONT = 12000
-        BACK  = 6000
+        FRONT = 25000
+        BACK  = 10000
         if len(raw) > FRONT + BACK:
             return raw[:FRONT] + "\n\n[...middle section retrieved via fallback...]\n\n" + raw[-BACK:]
         return raw
@@ -1671,6 +1672,17 @@ def page_write():
 
             stage_status.success("✅ Write-up complete.")
 
+            # ── Persist immediately to Supabase ───────────────────
+            # Save before assessment so a page refresh never loses the output.
+            # assessment_done stays False — assessment still needs to be run.
+            cleaned_for_save = clean_output_text(output)
+            body_wc_for_save = count_body_words(cleaned_for_save)
+            writing_id = save_writing(
+                selected_agent, agent_info["class"],
+                context, body_wc_for_save, cleaned_for_save,
+                tok_in, tok_out, cost
+            )
+
             st.session_state["last_output"]       = output
             st.session_state["last_agent"]        = selected_agent
             st.session_state["last_discipline"]   = agent_info["class"]
@@ -1681,6 +1693,7 @@ def page_write():
             st.session_state["last_tokens_out"]   = tok_out
             st.session_state["last_cost"]         = cost
             st.session_state["last_source_texts"] = source_texts
+            st.session_state["last_writing_id"]   = writing_id
             st.session_state["assessment_done"]   = False
             st.rerun()
 
@@ -1731,14 +1744,6 @@ def page_write():
                     hist_sim   = check_history_similarity(cleaned_output)
                     risk       = run_risk_assessment(cleaned_output)
                     cite_check = run_citation_verification(cleaned_output)
-                    save_writing(
-                        agent_name, discipline,
-                        st.session_state["last_context"],
-                        body_words, cleaned_output,
-                        st.session_state["last_tokens_in"],
-                        st.session_state["last_tokens_out"],
-                        st.session_state["last_cost"]
-                    )
                 st.session_state["assess_src_sim"]   = src_sim
                 st.session_state["assess_hist_sim"]  = hist_sim
                 st.session_state["assess_risk"]      = risk
