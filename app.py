@@ -477,108 +477,174 @@ Return pure JSON only — no markdown, no explanation outside the JSON."""
 #  WRITER
 # ─────────────────────────────────────────────
 
+def _parse_structure_sections(structure: str) -> list:
+    """Parse user structure into a list of section headings."""
+    sections = []
+    for line in structure.strip().split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        # Strip leading numbers, bullets, dots
+        clean = re.sub(r"^[\d]+[\)\.\ ]+|^[-*•]+\s*", "", line).strip()
+        if clean:
+            sections.append(clean)
+    return sections
+
+
+def _build_source_block(source_texts: list, max_total_chars: int = 14000) -> str:
+    """
+    Distribute source material budget evenly across uploaded papers.
+    Caps total chars fed into the prompt to protect output token budget.
+    """
+    if not source_texts:
+        return ""
+    per_source = max(800, max_total_chars // len(source_texts))
+    block = "\n\n=== REFERENCE MATERIALS ===\n"
+    block += "(Cite ONLY from these sources. Do not introduce authors, years, or titles not present here.)\n"
+    for i, txt in enumerate(source_texts, 1):
+        block += f"\n[Paper {i}]\n{txt[:per_source]}\n"
+    block += "\n=== END OF REFERENCE MATERIALS ===\n"
+    return block
+
+
+def _body_word_count(text: str) -> int:
+    """Word count of body only — excludes References section."""
+    parts = re.split(
+        r"\n(?:References|REFERENCES|Bibliography|BIBLIOGRAPHY)\s*\n",
+        text, maxsplit=1
+    )
+    return len(parts[0].split())
+
+
+def _do_api_call(system: str, user: str, max_tokens: int,
+                 label: str, tokens_in_acc: int, tokens_out_acc: float,
+                 cost_acc: float) -> tuple:
+    """Single GPT-4o call. Returns (output_text, total_in, total_out, total_cost)."""
+    resp = openai_client.chat.completions.create(
+        model=GPT_WRITER,
+        messages=[{"role": "system", "content": system},
+                  {"role": "user",   "content": user}],
+        temperature=0.7,
+        max_tokens=max_tokens,
+        stream=False
+    )
+    out   = resp.choices[0].message.content
+    t_in  = resp.usage.prompt_tokens
+    t_out = resp.usage.completion_tokens
+    c     = calc_cost(GPT_WRITER, t_in, t_out)
+    log_cost(label, GPT_WRITER, t_in, t_out, c)
+    return out, tokens_in_acc + t_in, tokens_out_acc + t_out, cost_acc + c
+
+
 def run_writer(agent_name: str, context: str, structure: str,
                rubric: str, word_count: int, source_texts: list) -> tuple:
 
     agent  = AGENTS[agent_name]
     system = agent["system_prompt"]
 
-    source_block = ""
-    if source_texts:
-        source_block = "\n\n--- REFERENCE MATERIALS PROVIDED ---\n"
-        for i, txt in enumerate(source_texts, 1):
-            source_block += f"\n[Source {i}]\n{txt[:6000]}\n"
-        source_block += "\n--- END OF REFERENCE MATERIALS ---\n"
-        source_block += "\nCITATION RULE: Cite ONLY from the sources above. Do not introduce any author, theory, or reference not present in the provided materials."
+    # ── Parse structure into explicit scaffold ─────────────────────────
+    sections = _parse_structure_sections(structure)
+    if sections:
+        scaffold_lines = []
+        for s in sections:
+            scaffold_lines.append(f"  {s}")
+        scaffold_str = "\n".join(scaffold_lines)
+    else:
+        scaffold_str = structure.strip()
 
-    rubric_block = f"\n\nMARKING RUBRIC:\n{rubric}" if rubric.strip() else ""
+    # ── Build source block with hard char budget ───────────────────────
+    source_block = _build_source_block(source_texts, max_total_chars=14000)
 
-    # Academic prose averages ~1.35 tokens/word. Add 800 tokens for references + buffer.
-    required_output_tokens = max(2048, min(16000, int(word_count * 1.5) + 800))
+    # ── Rubric ─────────────────────────────────────────────────────────
+    rubric_block = f"\nMARKING RUBRIC:\n{rubric.strip()}\n" if rubric.strip() else ""
+
+    # ── Token budget ───────────────────────────────────────────────────
+    # ~1.35 tokens per word for academic prose + 900 buffer for references
+    output_tokens = max(2500, min(16000, int(word_count * 1.5) + 900))
     low_wc  = int(word_count * 0.97)
     high_wc = int(word_count * 1.03)
 
-    user_prompt = (
-        "ASSESSMENT BRIEF\n"
-        "================\n"
-        f"{context}\n\n"
-        "REQUIRED STRUCTURE:\n"
-        f"{structure}\n"
-        f"{rubric_block}\n\n"
-        "WORD COUNT REQUIREMENT — NON-NEGOTIABLE:\n"
-        f"- The body of this write-up must be {word_count} words, within ±3% ({low_wc}–{high_wc} words).\n"
-        "- Word count covers the BODY only — everything before the References section.\n"
-        "- References are NOT counted and must be complete.\n"
-        f"- Do NOT stop before reaching {word_count} body words. If you feel done before that, you have not argued deeply enough.\n"
-        "- Expand every argument: apply theory, critique its limits, compare competing views, cite evidence.\n\n"
-        "DEPTH REQUIREMENT:\n"
-        "- Every paragraph must advance an argument — no description, no padding, no empty transitions.\n"
-        "- Engage critically with theory: explain it, apply it, challenge it, compare alternatives.\n"
-        "- Support every major claim with citations from the source materials.\n"
-        "- Write as a first-class postgraduate submission — substantive, critical, intellectually rigorous.\n"
-        f"{source_block}\n\n"
-        "Write the complete academic piece now. Follow the structure exactly. "
-        "Do NOT use markdown symbols (**, ##, *, __) — plain prose and clear paragraph breaks only. "
-        "End with a full Harvard reference list titled 'References'."
+    # ── Primary prompt ─────────────────────────────────────────────────
+    user_prompt = f"""ASSESSMENT CONTEXT
+==================
+{context}
+
+YOUR STRUCTURE — YOU MUST FOLLOW THIS EXACTLY:
+===============================================
+{scaffold_str}
+
+You must write every section listed above in the order given.
+Do not skip, merge, rename, or reorder any section.
+Each section must be substantive — not a single paragraph unless the word count is very low.
+{rubric_block}
+WORD COUNT — MANDATORY:
+The body (everything before References) must be {word_count} words, within ±3% ({low_wc}–{high_wc} words).
+References are excluded from the count and must be complete.
+If you reach what feels like a natural conclusion before {word_count} words: you have not gone deep enough.
+Deepen the argument — apply theory, critique its limits, compare competing scholars, interrogate evidence.
+{source_block}
+WRITING STANDARDS:
+- Every paragraph must advance an argument. No description, no padding, no filler transitions.
+- Apply theory critically: explain it, use it, challenge it, compare it to alternatives.
+- Ground every major claim in the source materials with Harvard in-text citations.
+- Write as a first-class postgraduate submission: substantive, critical, intellectually rigorous.
+- Do NOT use markdown symbols (**, ##, *, __) — plain prose and paragraph breaks only.
+
+Begin writing now. Write ALL sections. End with a complete Harvard reference list titled: References"""
+
+    total_in, total_out, total_cost = 0, 0, 0.0
+    output, total_in, total_out, total_cost = _do_api_call(
+        system, user_prompt, output_tokens, "writing",
+        total_in, total_out, total_cost
     )
 
-    response = openai_client.chat.completions.create(
-        model=GPT_WRITER,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user",   "content": user_prompt}
-        ],
-        temperature=0.7,
-        max_tokens=required_output_tokens,
-        stream=False
-    )
+    # ── Continuation passes (up to 2) to hit word count ───────────────
+    for pass_num in range(1, 3):
+        body_wc = _body_word_count(output)
+        if body_wc >= int(word_count * 0.92):
+            break  # Close enough — stop
 
-    output     = response.choices[0].message.content
-    tokens_in  = response.usage.prompt_tokens
-    tokens_out = response.usage.completion_tokens
-    cost       = calc_cost(GPT_WRITER, tokens_in, tokens_out)
-    log_cost("writing", GPT_WRITER, tokens_in, tokens_out, cost)
+        shortfall    = word_count - body_wc
+        cont_tokens  = max(1500, min(10000, int(shortfall * 1.6) + 800))
 
-    # Continuation pass if body is still under 80% of target
-    body_wc = len(re.split(
-        r'\nReferences\s*\n|\nREFERENCES\s*\n|\nBibliography\s*\n',
-        output, maxsplit=1)[0].split())
-
-    if body_wc < int(word_count * 0.80):
-        shortfall = word_count - body_wc
-        cont_tokens = max(1500, min(8000, int(shortfall * 1.6) + 600))
-        continuation_prompt = (
-            f"The write-up body is currently approximately {body_wc} words but must reach {word_count} words.\n"
-            f"You must add approximately {shortfall} more words of body content.\n"
-            "- Do NOT repeat or summarise what was already written.\n"
-            "- Continue the arguments with the same critical depth and engagement.\n"
-            "- Expand sections that were too brief; deepen the theoretical analysis.\n"
-            "- After the continuation, reproduce the complete References list.\n"
-            "- No markdown symbols.\n\n"
-            "Current write-up:\n---\n"
-            f"{output}\n---\n\nContinue now:"
+        # Strip references from current output so we append cleanly
+        parts = re.split(
+            r"\n(?:References|REFERENCES|Bibliography|BIBLIOGRAPHY)\s*\n",
+            output, maxsplit=1
         )
-        cont_response = openai_client.chat.completions.create(
-            model=GPT_WRITER,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user",   "content": continuation_prompt}
-            ],
-            temperature=0.7,
-            max_tokens=cont_tokens,
-            stream=False
-        )
-        cont_out  = cont_response.choices[0].message.content
-        cont_in   = cont_response.usage.prompt_tokens
-        cont_tok  = cont_response.usage.completion_tokens
-        cont_cost = calc_cost(GPT_WRITER, cont_in, cont_tok)
-        log_cost("writing_continuation", GPT_WRITER, cont_in, cont_tok, cont_cost)
-        output     = cont_out
-        tokens_in  += cont_in
-        tokens_out += cont_tok
-        cost       += cont_cost
+        body_so_far = parts[0].rstrip()
 
-    return output, tokens_in, tokens_out, cost
+        cont_prompt = f"""You are continuing an academic write-up that is currently {body_wc} words in the body.
+The target is {word_count} words. You must write approximately {shortfall} more words of body content.
+
+RULES:
+- Do NOT repeat or summarise anything already written.
+- Do NOT restart from the beginning.
+- Continue seamlessly from where the text ends — pick up mid-section if needed.
+- Deepen existing arguments: more critical engagement with theory, more evidence from source materials, stronger comparative analysis.
+- If a section was too brief, expand it substantively.
+- No markdown symbols (**, ##, *, __).
+- After the continuation body content, write the complete References section.
+
+STRUCTURE REMINDER — ensure all these sections are covered:
+{scaffold_str}
+
+TEXT SO FAR (do not repeat this — continue from where it ends):
+---
+{body_so_far[-6000:]}
+---
+
+Continue now, writing the remaining {shortfall} words:"""
+
+        cont_out, total_in, total_out, total_cost = _do_api_call(
+            system, cont_prompt, cont_tokens, f"writing_continuation_{pass_num}",
+            total_in, total_out, total_cost
+        )
+
+        # Merge: body so far + continuation (which contains new body + references)
+        output = body_so_far + "\n\n" + cont_out
+
+    return output, total_in, total_out, total_cost
 
 # ─────────────────────────────────────────────
 #  RISK ASSESSMENT
