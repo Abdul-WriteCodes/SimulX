@@ -1860,7 +1860,228 @@ def inject_css():
         margin-bottom: 2rem;
     }
 
-    /* ── Scrollbar ────────────────────────────────────────────────────── */
+    /* ── Hero ─────────────────────────────────────────────────────────── */
+    .hero {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(160deg, #080c14 0%, #0e1528 40%, #0a1220 100%);
+        border: 1px solid rgba(99,102,241,0.18);
+        border-radius: 20px;
+        padding: 4rem 3rem 3.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    .hero-glow {
+        position: absolute;
+        width: 360px; height: 360px;
+        border-radius: 50%;
+        filter: blur(80px);
+        pointer-events: none;
+        opacity: 0.4;
+    }
+    .hero-glow-left  { background: radial-gradient(circle, #4f46e5, transparent 70%); top: -80px; left: -80px; }
+    .hero-glow-right { background: radial-gradient(circle, #0ea5e9, transparent 70%); bottom: -80px; right: -80px; }
+    .hero-inner { position: relative; z-index: 1; }
+    .hero-eyebrow {
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        color: #6366f1;
+        margin-bottom: 1.1rem;
+    }
+    .hero-title {
+        font-size: 2.6rem !important;
+        font-weight: 800 !important;
+        color: #f1f5f9 !important;
+        letter-spacing: -1.5px !important;
+        line-height: 1.15 !important;
+        margin: 0 0 1.1rem !important;
+    }
+    .hero-subtitle {
+        font-size: 1rem;
+        color: #64748b;
+        max-width: 540px;
+        margin: 0 auto;
+        line-height: 1.7;
+    }
+
+    /* ── Capability grid ──────────────────────────────────────────────── */
+    .capability-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .cap-card {
+        background: #0d1424;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 14px;
+        padding: 1.4rem 1.5rem 1.25rem;
+        transition: border-color 0.2s, transform 0.2s;
+    }
+    .cap-card:hover {
+        border-color: rgba(99,102,241,0.3);
+        transform: translateY(-2px);
+    }
+    .cap-icon  { font-size: 1.6rem; margin-bottom: 0.6rem; }
+    .cap-title { font-size: 0.95rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.2rem; }
+    .cap-agents{ font-size: 0.75rem; color: #475569; margin-bottom: 0.75rem; font-family: 'JetBrains Mono', monospace; }
+    .cap-tags  { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .cap-tag   {
+        background: rgba(99,102,241,0.08);
+        border: 1px solid rgba(99,102,241,0.18);
+        color: #818cf8;
+        font-size: 0.68rem;
+        font-weight: 600;
+        padding: 0.18rem 0.55rem;
+        border-radius: 999px;
+    }
+
+    /* ── How it works ─────────────────────────────────────────────────── */
+    .how-it-works {
+        background: #0d1424;
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 14px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 0.5rem;
+    }
+    .hiw-label {
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        color: #334155;
+        margin-bottom: 1.1rem;
+    }
+    .hiw-steps {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .hiw-step { display: flex; align-items: flex-start; gap: 0.65rem; flex: 1; min-width: 140px; }
+    .hiw-num  {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: rgba(99,102,241,0.35);
+        font-family: 'JetBrains Mono', monospace;
+        line-height: 1;
+        padding-top: 0.05rem;
+        flex-shrink: 0;
+    }
+    .hiw-text strong { display: block; font-size: 0.82rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.2rem; }
+    .hiw-text span   { font-size: 0.75rem; color: #475569; line-height: 1.4; }
+    .hiw-arrow { color: #1e293b; font-size: 1.1rem; flex-shrink: 0; }
+
+    /* ── Step headers ─────────────────────────────────────────────────── */
+    .step-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 0.25rem 0 0.85rem;
+    }
+    .step-num {
+        font-size: 0.7rem;
+        font-weight: 800;
+        font-family: 'JetBrains Mono', monospace;
+        background: rgba(99,102,241,0.12);
+        border: 1px solid rgba(99,102,241,0.25);
+        color: #818cf8;
+        padding: 0.25rem 0.55rem;
+        border-radius: 6px;
+        letter-spacing: 0.05em;
+        flex-shrink: 0;
+    }
+    .step-title { font-size: 1.05rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.1rem; }
+    .step-hint  { font-size: 0.78rem; color: #475569; }
+
+    /* ── Inline hints ─────────────────────────────────────────────────── */
+    .inline-hint {
+        font-size: 0.78rem;
+        font-weight: 500;
+        padding: 0.45rem 0.85rem;
+        border-radius: 8px;
+        margin-top: 0.5rem;
+        display: inline-block;
+    }
+    .inline-hint.warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #f59e0b; }
+    .inline-hint.ok   { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);  color: #10b981; }
+
+    /* ── Dispatch card badge ──────────────────────────────────────────── */
+    .dispatch-badge {
+        display: inline-block;
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        padding: 0.2rem 0.65rem;
+        border-radius: 999px;
+        margin-bottom: 0.6rem;
+    }
+
+    /* ── Word count widget ────────────────────────────────────────────── */
+    .word-count-widget {
+        background: rgba(99,102,241,0.06);
+        border: 1px solid rgba(99,102,241,0.15);
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        margin-top: 0.5rem;
+    }
+    .wcw-val   { font-size: 2rem; font-weight: 800; color: #818cf8; font-family: 'JetBrains Mono', monospace; letter-spacing: -1px; }
+    .wcw-label { font-size: 0.75rem; font-weight: 600; color: #64748b; margin-top: 0.1rem; }
+    .wcw-sub   { font-size: 0.67rem; color: #334155; margin-top: 0.2rem; }
+
+    /* ── Upload feedback panel ────────────────────────────────────────── */
+    .upload-empty {
+        text-align: center;
+        padding: 1.1rem 0.75rem;
+        background: rgba(255,255,255,0.02);
+        border: 1px dashed rgba(255,255,255,0.06);
+        border-radius: 10px;
+        margin: 0.25rem 0.5rem 0.75rem;
+    }
+    .upload-empty-icon { font-size: 1.4rem; opacity: 0.4; margin-bottom: 0.3rem; }
+    .upload-empty-text { font-size: 0.78rem; color: #334155; font-weight: 500; }
+    .upload-empty-hint { font-size: 0.68rem; color: #1e293b; margin-top: 0.15rem; }
+
+    .upload-feedback {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 10px;
+        padding: 0.85rem 0.9rem 0.7rem;
+        margin: 0.25rem 0.5rem 0.5rem;
+    }
+    .upload-count-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.65rem;
+    }
+    .upload-count { font-size: 1.6rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+    .upload-count-label { font-size: 0.75rem; color: #64748b; font-weight: 500; flex: 1; }
+    .upload-quality-badge {
+        font-size: 0.62rem; font-weight: 700;
+        padding: 0.18rem 0.55rem; border-radius: 999px;
+        letter-spacing: 0.05em;
+    }
+    .upload-file-list { display: flex; flex-direction: column; gap: 0.3rem; }
+    .upload-file-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(255,255,255,0.03);
+        border-radius: 6px;
+        padding: 0.28rem 0.5rem;
+    }
+    .upload-file-ext  { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.04em; flex-shrink: 0; }
+    .upload-file-name { font-size: 0.73rem; color: #94a3b8; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .upload-file-size { font-size: 0.67rem; color: #334155; flex-shrink: 0; }
+    .upload-tip {
+        font-size: 0.72rem; color: #475569;
+        padding: 0.3rem 0.5rem 0.25rem;
+        font-style: italic;
+    }
+
+
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
@@ -1912,16 +2133,78 @@ def render_sidebar():
 
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
 
-        # Navigation — Setup removed (was dev-only config info)
+        # Navigation
         page = st.radio("nav", ["✍️  Write", "📊  Dashboard", "📚  History"],
                         label_visibility="collapsed")
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+
+        # ── Reference Materials Upload ─────────────────────────────────
+        st.markdown('<div class="sidebar-section-label">Reference Materials</div>', unsafe_allow_html=True)
+
+        uploaded_files = st.file_uploader(
+            "upload_refs",
+            accept_multiple_files=True,
+            type=["pdf", "docx", "txt"],
+            label_visibility="collapsed",
+            help="Upload PDFs, Word docs, or text files. Citations will be drawn only from these.",
+            key="sidebar_uploads"
+        )
+
+        # Store in session state so page_write can access them
+        st.session_state["uploaded_files"] = uploaded_files or []
+
+        # Feedback panel
+        n = len(uploaded_files) if uploaded_files else 0
+        if n == 0:
+            st.markdown("""
+            <div class="upload-empty">
+                <div class="upload-empty-icon">📂</div>
+                <div class="upload-empty-text">No papers uploaded yet</div>
+                <div class="upload-empty-hint">PDF · DOCX · TXT</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            badge_color = "#10b981" if n >= 3 else "#f59e0b" if n >= 1 else "#ef4444"
+            badge_bg    = "#022c22" if n >= 3 else "#2d1a00" if n >= 1 else "#2d0000"
+            quality_label = "Excellent" if n >= 4 else "Good" if n >= 2 else "Minimal"
+            st.markdown(f"""
+            <div class="upload-feedback">
+                <div class="upload-count-row">
+                    <span class="upload-count" style="color:{badge_color};">{n}</span>
+                    <span class="upload-count-label">paper{"s" if n != 1 else ""} loaded</span>
+                    <span class="upload-quality-badge" style="background:{badge_bg};color:{badge_color};">{quality_label}</span>
+                </div>
+                <div class="upload-file-list">
+            """, unsafe_allow_html=True)
+
+            for f in uploaded_files:
+                ext  = f.name.rsplit(".", 1)[-1].upper() if "." in f.name else "FILE"
+                size = f"{f.size / 1024:.0f} KB" if hasattr(f, "size") else ""
+                ext_color = {"PDF": "#f87171", "DOCX": "#60a5fa", "TXT": "#a3e635"}.get(ext, "#94a3b8")
+                short_name = f.name[:24] + "…" if len(f.name) > 26 else f.name
+                st.markdown(f"""
+                    <div class="upload-file-row">
+                        <span class="upload-file-ext" style="color:{ext_color};">{ext}</span>
+                        <span class="upload-file-name">{short_name}</span>
+                        <span class="upload-file-size">{size}</span>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown("""
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if n < 2:
+                st.markdown('<div class="upload-tip">💡 Add more sources for richer citation synthesis</div>', unsafe_allow_html=True)
+
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
 
         # Total cost
         total = get_total_cost()
         st.markdown(f"""
         <div class="sidebar-cost-block">
-            <div class="sidebar-cost-label">Session Spend</div>
+            <div class="sidebar-cost-label">Cumulative Spend</div>
             <div class="sidebar-cost-value">${total:.4f} <span class="sidebar-cost-unit">USD</span></div>
         </div>
         """, unsafe_allow_html=True)
@@ -1947,7 +2230,6 @@ def render_sidebar():
             st.rerun()
 
     raw = page.strip()
-    # strip emoji prefix and extra spaces
     return raw.split("  ", 1)[1] if "  " in raw else raw.split(" ", 1)[1]
 
 # ─────────────────────────────────────────────
@@ -1955,111 +2237,232 @@ def render_sidebar():
 # ─────────────────────────────────────────────
 
 def page_write():
-    st.markdown("""
-    <div class="page-header">
-        <div class="page-header-content">
-            <h1>⬡ Agent43</h1>
-            <p>Academic Writing System · Nine Agents · Three Disciplines · Zero Hallucinated Citations</p>
-        </div>
-        <div class="page-header-badge">AI-Powered</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ── STEP 1: Assessment Context ─────────────────────────────────────
-    st.markdown("### Step 1 — Assessment Context")
-    context = st.text_area("Paste your assessment brief or context here",
-                           height=140, placeholder="Describe the assessment topic, question, or brief...")
-
-    # ── STEP 2: Dispatcher ─────────────────────────────────────────────
+    uploaded_files = st.session_state.get("uploaded_files", [])
+    n_papers       = len(uploaded_files)
     dispatch_result = st.session_state.get("dispatch_result")
     selected_agent  = st.session_state.get("selected_agent")
+    has_output      = bool(st.session_state.get("last_output"))
 
-    if context.strip() and not dispatch_result:
-        if st.button("🎯 Analyse & Recommend Agent", use_container_width=False):
-            with st.spinner("Dispatcher analysing brief..."):
-                result = run_dispatcher(context)
-                st.session_state["dispatch_result"] = result
-                st.session_state["selected_agent"]  = result.get("recommended", "Agent Alpha")
-                st.rerun()
-
-    if dispatch_result:
-        rec = dispatch_result
-        st.markdown(f"""
-        <div class="dispatch-card">
-            <h3>⚡ {rec.get('recommended', 'N/A')}</h3>
-            <p><strong>Class:</strong> {rec.get('class', '')} &nbsp;|&nbsp;
-               <strong>Confidence:</strong> {rec.get('confidence', '')}</p>
-            <p><strong>Why:</strong> {rec.get('reasoning', '')}</p>
-            <p><em>Others in class: {rec.get('not_alpha', '')} / {rec.get('not_beta', '')}</em></p>
+    # ══════════════════════════════════════════════════════════════════
+    # HERO — only shown before any output exists
+    # ══════════════════════════════════════════════════════════════════
+    if not has_output:
+        st.markdown("""
+        <div class="hero">
+            <div class="hero-glow hero-glow-left"></div>
+            <div class="hero-glow hero-glow-right"></div>
+            <div class="hero-inner">
+                <div class="hero-eyebrow">AI-POWERED ACADEMIC WRITING SYSTEM</div>
+                <h1 class="hero-title">Write with the precision<br>of a first-class scholar.</h1>
+                <p class="hero-subtitle">
+                    Nine specialist agents. Three disciplines. Citations sourced exclusively
+                    from your uploaded references — zero hallucinations, every time.
+                </p>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Override
-        all_agents = list(AGENTS.keys())
-        override = st.selectbox("Confirm or override agent selection",
-                                all_agents,
-                                index=all_agents.index(rec.get("recommended", all_agents[0])))
-        st.session_state["selected_agent"] = override
+        st.markdown("""
+        <div class="capability-grid">
+            <div class="cap-card">
+                <div class="cap-icon">🌐</div>
+                <div class="cap-title">International Business</div>
+                <div class="cap-agents">Alpha · Beta · Gamma</div>
+                <div class="cap-tags">
+                    <span class="cap-tag">FDI Theory</span>
+                    <span class="cap-tag">Institutional Economics</span>
+                    <span class="cap-tag">Global Strategy</span>
+                </div>
+            </div>
+            <div class="cap-card">
+                <div class="cap-icon">📣</div>
+                <div class="cap-title">International Marketing</div>
+                <div class="cap-agents">Delta · Epsilon · Zeta</div>
+                <div class="cap-tags">
+                    <span class="cap-tag">Brand Equity</span>
+                    <span class="cap-tag">Cultural Intelligence</span>
+                    <span class="cap-tag">Consumer Behaviour</span>
+                </div>
+            </div>
+            <div class="cap-card">
+                <div class="cap-icon">🏥</div>
+                <div class="cap-title">Health &amp; Social Care</div>
+                <div class="cap-agents">Eta · Theta · Iota</div>
+                <div class="cap-tags">
+                    <span class="cap-tag">Reflective Practice</span>
+                    <span class="cap-tag">Policy &amp; Law</span>
+                    <span class="cap-tag">Social Justice</span>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        if st.button("🔄 Re-run Dispatcher"):
-            st.session_state.pop("dispatch_result", None)
-            st.session_state.pop("selected_agent", None)
-            st.rerun()
+        st.markdown("""
+        <div class="how-it-works">
+            <div class="hiw-label">HOW IT WORKS</div>
+            <div class="hiw-steps">
+                <div class="hiw-step">
+                    <div class="hiw-num">01</div>
+                    <div class="hiw-text">
+                        <strong>Upload references</strong>
+                        <span>Drop PDFs or Word docs in the sidebar panel</span>
+                    </div>
+                </div>
+                <div class="hiw-arrow">→</div>
+                <div class="hiw-step">
+                    <div class="hiw-num">02</div>
+                    <div class="hiw-text">
+                        <strong>Describe your brief</strong>
+                        <span>Paste your assessment question below</span>
+                    </div>
+                </div>
+                <div class="hiw-arrow">→</div>
+                <div class="hiw-step">
+                    <div class="hiw-num">03</div>
+                    <div class="hiw-text">
+                        <strong>Agent recommends</strong>
+                        <span>Dispatcher selects the best specialist</span>
+                    </div>
+                </div>
+                <div class="hiw-arrow">→</div>
+                <div class="hiw-step">
+                    <div class="hiw-num">04</div>
+                    <div class="hiw-text">
+                        <strong>Write &amp; assess</strong>
+                        <span>Essay streams live with originality report</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="height:1.5rem"></div>
+        """, unsafe_allow_html=True)
 
-    # ── STEP 3: Writing Brief ──────────────────────────────────────────
-    if selected_agent:
-        st.markdown(f"---\n### Step 2 — Brief for **{selected_agent}**")
+    # ══════════════════════════════════════════════════════════════════
+    # STEP 1 — Assessment Brief
+    # ══════════════════════════════════════════════════════════════════
+    if not has_output:
+        st.markdown("""
+        <div class="step-header">
+            <span class="step-num">01</span>
+            <div>
+                <div class="step-title">Assessment Brief</div>
+                <div class="step-hint">Paste your question, topic, or full assessment context</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        context = st.text_area(
+            "brief", height=160, label_visibility="collapsed",
+            placeholder="e.g.  Critically evaluate the role of institutional voids in shaping entry strategies of MNEs in emerging markets. Discuss with reference to relevant theory and empirical evidence..."
+        )
+
+        if n_papers == 0:
+            st.markdown('<div class="inline-hint warn">⚠️  No references uploaded — add PDFs in the sidebar before generating</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="inline-hint ok">✓  {n_papers} reference{"s" if n_papers!=1 else ""} ready · citations sourced exclusively from your documents</div>', unsafe_allow_html=True)
+
+    # ══════════════════════════════════════════════════════════════════
+    # STEP 2 — Dispatcher
+    # ══════════════════════════════════════════════════════════════════
+    if not has_output:
+        if 'context' not in dir():
+            context = ""
+
+        if context.strip() and not dispatch_result:
+            st.markdown("<div style='margin:1rem 0 0.5rem'></div>", unsafe_allow_html=True)
+            if st.button("⚡  Analyse Brief & Recommend Agent"):
+                with st.spinner("Dispatcher reading your brief..."):
+                    result = run_dispatcher(context)
+                    st.session_state["dispatch_result"] = result
+                    st.session_state["selected_agent"]  = result.get("recommended", "Agent Alpha")
+                    st.rerun()
+
+        if dispatch_result:
+            rec = dispatch_result
+            conf = rec.get("confidence", "")
+            conf_color = {"High": "#10b981", "Medium": "#f59e0b", "Low": "#94a3b8"}.get(conf, "#94a3b8")
+            conf_bg    = {"High": "#022c22", "Medium": "#2d1a00", "Low": "#1e293b"}.get(conf, "#1e293b")
+            st.markdown(f"""
+            <div class="dispatch-card">
+                <div class="dispatch-badge" style="background:{conf_bg};color:{conf_color};">{conf.upper()} CONFIDENCE</div>
+                <h3>⚡ {rec.get('recommended','N/A')}</h3>
+                <p><strong>Discipline:</strong> {rec.get('class','')}</p>
+                <p><strong>Rationale:</strong> {rec.get('reasoning','')}</p>
+                <p style="opacity:0.55;font-size:0.78rem;margin-top:0.5rem;">{rec.get('not_alpha','')} · {rec.get('not_beta','')}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            all_agents = list(AGENTS.keys())
+            override = st.selectbox("Confirm or override agent",
+                                    all_agents,
+                                    index=all_agents.index(rec.get("recommended", all_agents[0])))
+            st.session_state["selected_agent"] = override
+
+            if st.button("🔄  Re-run Dispatcher"):
+                st.session_state.pop("dispatch_result", None)
+                st.session_state.pop("selected_agent", None)
+                st.rerun()
+
+    # ══════════════════════════════════════════════════════════════════
+    # STEP 3 — Writing Brief
+    # ══════════════════════════════════════════════════════════════════
+    if selected_agent and not has_output:
+        st.markdown('<hr style="border-color:rgba(255,255,255,0.05);margin:1.75rem 0 1.25rem">', unsafe_allow_html=True)
         agent_info = AGENTS[selected_agent]
-        st.caption(f"{agent_info['class']} · {agent_info['signature']}")
 
-        col1, col2 = st.columns([2, 1])
+        st.markdown(f"""
+        <div class="step-header">
+            <span class="step-num">02</span>
+            <div>
+                <div class="step-title">Brief for <span style="color:#a5b4fc">{selected_agent}</span></div>
+                <div class="step-hint">{agent_info['class']} · {agent_info['signature']}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col1, col2 = st.columns([3, 1])
         with col1:
-            structure = st.text_area("Structure / Outline",
-                                     height=120,
-                                     placeholder="e.g.\n1. Introduction\n2. Literature Review\n3. Critical Analysis\n4. Conclusion\n5. References")
-            rubric = st.text_area("Marking Rubric (optional)",
-                                  height=100,
-                                  placeholder="Paste marking criteria here if available...")
-        with col2:
-            word_count = st.number_input("Target Word Count", min_value=200, max_value=8000,
-                                         value=1500, step=100)
-            uploaded_files = st.file_uploader(
-                "Upload Reference Materials",
-                accept_multiple_files=True,
-                type=["pdf", "docx", "txt"],
-                help="Citations will be drawn ONLY from these documents"
+            structure = st.text_area(
+                "Essay Structure / Outline", height=130,
+                placeholder="e.g.\n1. Introduction\n2. Literature Review\n3. Critical Analysis\n4. Conclusion\n5. References"
             )
+            rubric = st.text_area(
+                "Marking Rubric (optional)", height=90,
+                placeholder="Paste marking criteria here — the agent will align its writing to each criterion..."
+            )
+        with col2:
+            word_count = st.number_input("Target Words", min_value=200, max_value=8000,
+                                         value=1500, step=100)
+            st.markdown(f"""
+            <div class="word-count-widget">
+                <div class="wcw-val">{word_count:,}</div>
+                <div class="wcw-label">body words</div>
+                <div class="wcw-sub">references excluded</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # ── STEP 4: Generate ──────────────────────────────────────────
-        st.markdown("---")
-        if st.button(f"✍️ Generate with {selected_agent}", use_container_width=False):
+        st.markdown("<div style='margin-top:1.25rem'></div>", unsafe_allow_html=True)
+        if st.button(f"✍️  Generate with {selected_agent}", use_container_width=False):
             if not context.strip():
-                st.error("Please provide an assessment context.")
+                st.error("Please provide an assessment brief.")
                 return
             if not structure.strip():
-                st.error("Please provide a structure.")
+                st.error("Please provide an essay structure.")
                 return
             if not uploaded_files:
-                st.warning("⚠️ No reference materials uploaded. The agent will note this — citations may be limited.")
+                st.warning("⚠️ No reference materials uploaded — the agent will write without citations.")
 
             source_texts = []
-            if uploaded_files:
-                for f in uploaded_files:
-                    txt = extract_text_from_file(f)
-                    if txt:
-                        source_texts.append(txt)
+            for f in uploaded_files:
+                txt = extract_text_from_file(f)
+                if txt:
+                    source_texts.append(txt)
 
-            # ── Stage 1 & 2 spinner (fast, no streaming yet) ──────
             stage_status = st.empty()
             stage_status.info("⚙️ Stage 1 — Extracting citation index from sources...")
-
-            # We run stages 1+2 first, then stream stage 3
-            # Use a placeholder that will become the live essay
-            st.markdown("---")
-            st.markdown('<div class="section-label">Writing — Live Output</div>',
-                        unsafe_allow_html=True)
+            st.markdown('<hr style="border-color:rgba(255,255,255,0.05)">', unsafe_allow_html=True)
+            st.markdown('<div class="section-label">Live Output</div>', unsafe_allow_html=True)
             stream_box = st.empty()
-
             stage_status.info("⚙️ Stage 2 — Building section plan...")
 
             output, tok_in, tok_out, cost = run_writer(
@@ -2067,7 +2470,6 @@ def page_write():
                 rubric, word_count, source_texts,
                 stream_container=stream_box
             )
-
             stage_status.success("✅ Write-up complete.")
 
             st.session_state["last_output"]       = output
