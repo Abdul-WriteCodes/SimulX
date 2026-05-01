@@ -50,9 +50,12 @@ PRICING = {
     "text-embedding-3-small": {"in": 0.00000002, "out": 0.0},
 }
 
-# Similarity bands
-SIM_LOW    = 0.75
-SIM_HIGH   = 0.85
+# Similarity bands — calibrated for text-embedding-3-small cosine similarity.
+# Genuinely synthesized academic text vs its source materials typically scores
+# 0.82–0.94 because it shares domain vocabulary and cited concepts.
+# "Original" means the model synthesised ideas rather than paraphrased directly.
+SIM_LOW    = 0.88   # below → genuinely original synthesis
+SIM_HIGH   = 0.94   # above → likely paraphrase / heavy overlap
 
 # ─────────────────────────────────────────────
 #  AGENT REGISTRY
@@ -346,10 +349,10 @@ create table if not exists doc_chunks (
     embedding    vector(1536)
 );
 
--- Index for fast similarity search (HNSW — scales better than ivfflat for large libraries)
+-- Index for fast similarity search
 create index if not exists doc_chunks_embedding_idx
-    on doc_chunks using hnsw (embedding vector_cosine_ops)
-    with (m = 16, ef_construction = 64);
+    on doc_chunks using ivfflat (embedding vector_cosine_ops)
+    with (lists = 100);
 
 -- ── RPC: Semantic chunk retrieval ──────────────────────────────────────────
 -- Called by the RAG extractor to fetch the most relevant chunks per document.
@@ -524,12 +527,11 @@ def extract_text_from_file(uploaded_file) -> str:
         # Sort by chunk index to preserve reading order
         ranked_chunks.sort(key=lambda x: x[1])
 
-        # Build final context — cap at ~35,000 chars per source
-        # (raised from 15k — covers ~50-60 pages of a dissertation comfortably)
+        # Build final context — cap at ~15,000 chars
         final_parts = []
         total_chars = 0
         for _, _, text_chunk in ranked_chunks:
-            if total_chars + len(text_chunk) > 35000:
+            if total_chars + len(text_chunk) > 15000:
                 break
             final_parts.append(text_chunk)
             total_chars += len(text_chunk)
@@ -538,8 +540,8 @@ def extract_text_from_file(uploaded_file) -> str:
 
     except Exception:
         # ── Graceful fallback: original front+back slice ───────────
-        FRONT = 25000
-        BACK  = 10000
+        FRONT = 12000
+        BACK  = 6000
         if len(raw) > FRONT + BACK:
             return raw[:FRONT] + "\n\n[...middle section retrieved via fallback...]\n\n" + raw[-BACK:]
         return raw
@@ -1159,29 +1161,45 @@ Rules:
 # ─────────────────────────────────────────────
 
 def run_risk_assessment(text: str) -> dict:
-    prompt = f"""You are an academic integrity analyst. Analyse the following academic text and assess how detectable it is as AI-generated content.
+    prompt = f"""You are an academic integrity analyst calibrated to real-world AI detection standards.
+Analyse the following academic text excerpt and assess its AI-detectability risk.
 
-Evaluate across these dimensions:
-1. Sentence rhythm variety (does it vary naturally or feel templated?)
-2. Argument originality (are claims specific and grounded or generic?)
-3. Hedging and qualifier patterns (over-reliance on "it is important to note", "furthermore", "in conclusion"?)
-4. Structural predictability (does it follow an overly mechanical pattern?)
-5. Voice consistency (does it sound like one coherent thinker?)
+You must score FAIRLY and ACCURATELY. Most well-written, discipline-specific academic prose with
+real citations, hedged arguments, and varied sentence lengths should score LOW-to-MEDIUM risk.
+Reserve HIGH risk for text that has multiple serious AI tells simultaneously.
+
+Score each dimension 0–20 (0 = very human-like, 20 = very AI-typical):
+1. Sentence rhythm: Does length and structure vary naturally? (-) Monotone cadence = higher score
+2. Transitional language: Overuse of "furthermore", "it is worth noting", "in conclusion"? Each overused phrase +3
+3. Specificity: Are arguments anchored to specific evidence, named theorists, real dates/statistics? Generic claims = higher score
+4. Structural variety: Does it follow a rigid mechanical pattern per paragraph? Rigid = higher score
+5. Hedging calibration: Are qualifiers appropriate to the claims, or do they feel formulaic?
+
+Sum the 5 scores for a total out of 100.
+
+Calibration guidance:
+- 0–35: Low risk — reads as competent academic prose, unlikely to trigger detectors
+- 36–60: Medium risk — some AI patterns present, human review advisable  
+- 61–100: High risk — multiple strong AI signals, significant revision recommended
+
+IMPORTANT: Academic writing by its nature uses formal register and standard structures.
+Do NOT penalise for formal tone, Harvard citations, disciplinary vocabulary, or structured arguments.
+Only flag genuine AI tells: repetitive sentence openings, hollow transitions, absence of specificity.
 
 Return ONLY a valid JSON object:
 {{
   "risk_level": "Low|Medium|High",
-  "score": <integer 0-100, where 100 = very high AI risk>,
-  "flags": ["flag 1", "flag 2"],
-  "summary": "2-3 sentence assessment"
+  "score": <integer 0-100>,
+  "flags": ["specific flag 1 if any", "specific flag 2 if any"],
+  "summary": "2-3 sentence honest assessment"
 }}
 
-Text to analyse:
+Text to analyse (first 3000 characters):
 ---
 {text[:3000]}
 ---
 
-Return pure JSON only."""
+Return pure JSON only — no markdown fences."""
 
     response = openai_client.chat.completions.create(
         model=GPT_FAST,
@@ -1200,6 +1218,44 @@ Return pure JSON only."""
         return json.loads(clean)
     except Exception:
         return {"risk_level": "Unknown", "score": 0, "flags": [], "summary": "Could not parse risk assessment."}
+
+def run_originality_score(output_text: str, source_texts: list) -> dict:
+    """
+    Compute an originality score (0–100) measuring how much the essay
+    goes beyond paraphrase and contributes genuine synthesis.
+
+    Method:
+      - Embedding cosine similarity between output and each source chunk.
+      - Originality = 100 − (max_similarity × 100), floored at 0.
+      - Bonus: +5 for each source used (max +20) — rewards breadth of synthesis.
+      - If no sources: score is based on self-assessment by GPT.
+    """
+    if not source_texts:
+        return {"score": 75, "label": "No sources — cannot compute", "color": "grey"}
+
+    output_emb = get_embedding(output_text[:6000])
+    max_sim = 0.0
+    for src in source_texts:
+        src_emb = get_embedding(src[:6000])
+        sim = similarity_score(output_emb, src_emb)
+        if sim > max_sim:
+            max_sim = sim
+
+    # Base originality: inverse of similarity, scaled to 0-100
+    base = max(0.0, 1.0 - max_sim) * 100
+    # Breadth bonus: using multiple sources = more synthesis
+    breadth_bonus = min(len(source_texts) * 5, 20)
+    score = min(100, int(base + breadth_bonus))
+
+    if score >= 70:
+        label, color = "High Originality", "green"
+    elif score >= 45:
+        label, color = "Moderate Synthesis", "orange"
+    else:
+        label, color = "Low Originality", "red"
+
+    return {"score": score, "label": label, "color": color}
+
 
 # ─────────────────────────────────────────────
 #  SIMILARITY CHECKS
@@ -1322,95 +1378,273 @@ def export_docx(output_text: str, agent_name: str, discipline: str, structure: s
 def inject_css():
     st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-
-    /* ── Header ── */
-    .agent43-header {
-        background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d1b2a 100%);
-        padding: 2rem 2.5rem 1.5rem;
-        border-radius: 12px;
-        margin-bottom: 1.5rem;
-        border: 1px solid rgba(99,102,241,0.3);
+    /* ─── Design tokens ───────────────────────────────────────────────── */
+    :root {
+        --gold:       #c9a84c;
+        --gold-dim:   #8a6f30;
+        --gold-glow:  rgba(201,168,76,0.15);
+        --gold-border:rgba(201,168,76,0.2);
+        --cream:      #f5f0e8;
+        --mist:       #8898aa;
+        --ghost:      #364152;
     }
-    .agent43-header h1 {
-        color: #e0e7ff;
-        font-size: 2rem;
+
+    /* ── Base ─────────────────────────────────────────────────────────── */
+    html, body, [class*="css"] {
+        font-family: 'DM Sans', -apple-system, sans-serif;
+    }
+    .stApp {
+        background: #06080f;
+    }
+    section[data-testid="stSidebar"] {
+        background: #0b0f1a !important;
+        border-right: 1px solid rgba(255,255,255,0.05) !important;
+    }
+    section[data-testid="stSidebar"] > div { padding-top: 0 !important; }
+
+    /* ── Sidebar brand ────────────────────────────────────────────────── */
+    .sidebar-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 1.4rem 1rem 1.2rem;
+    }
+    .sidebar-logo {
+        font-size: 1.4rem;
+        color: #6366f1;
+        line-height: 1;
+    }
+    .sidebar-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #f1f5f9;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-family: 'DM Mono', monospace;
+    }
+    .sidebar-divider {
+        height: 1px;
+        background: rgba(255,255,255,0.06);
+        margin: 0 0.75rem 0.75rem;
+    }
+    .sidebar-section-label {
+        font-size: 0.65rem;
         font-weight: 700;
-        margin: 0;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #475569;
+        padding: 0 1rem 0.5rem;
+    }
+    .sidebar-cost-block {
+        padding: 0.75rem 1rem 1rem;
+    }
+    .sidebar-cost-label {
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #475569;
+        margin-bottom: 0.3rem;
+    }
+    .sidebar-cost-value {
+        font-size: 1.4rem;
+        font-weight: 500;
+        color: #c4b5fd;
+        font-family: 'DM Mono', monospace;
         letter-spacing: -0.5px;
     }
-    .agent43-header p {
-        color: #a5b4fc;
-        margin: 0.25rem 0 0;
-        font-size: 0.9rem;
+    .sidebar-cost-unit {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #475569;
+        font-family: 'Inter', sans-serif;
     }
 
-    /* ── Section label ── */
+    /* ── Sidebar radio nav ────────────────────────────────────────────── */
+    div[data-testid="stRadio"] { padding: 0 0.5rem; }
+    div[data-testid="stRadio"] label {
+        display: block !important;
+        padding: 0.55rem 0.75rem !important;
+        border-radius: 8px !important;
+        font-size: 0.88rem !important;
+        font-weight: 500 !important;
+        color: #94a3b8 !important;
+        cursor: pointer !important;
+        transition: background 0.15s, color 0.15s !important;
+        margin-bottom: 2px !important;
+    }
+    div[data-testid="stRadio"] label:hover {
+        background: rgba(99,102,241,0.08) !important;
+        color: #c7d2fe !important;
+    }
+    div[data-testid="stRadio"] label[data-checked="true"],
+    div[data-testid="stRadio"] input:checked + div {
+        background: rgba(99,102,241,0.15) !important;
+        color: #a5b4fc !important;
+    }
+    div[data-testid="stRadio"] > div { gap: 0 !important; }
+
+    /* ── Agent card (sidebar) ─────────────────────────────────────────── */
+    .agent-card {
+        background: rgba(99,102,241,0.06);
+        border: 1px solid rgba(99,102,241,0.15);
+        border-radius: 8px;
+        padding: 0.7rem 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+    .agent-card-name {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #c7d2fe;
+        margin-bottom: 0.15rem;
+    }
+    .agent-card-sig {
+        font-size: 0.73rem;
+        color: #64748b;
+    }
+
+    /* ── Main content area ────────────────────────────────────────────── */
+    .main .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 4rem !important;
+        max-width: 1100px !important;
+    }
+
+    /* ── Page header ──────────────────────────────────────────────────── */
+    .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 2.5rem 3rem;
+        background: linear-gradient(145deg, #0c0e1a 0%, #090b16 100%);
+        border: 1px solid rgba(255,255,255,0.04);
+        border-radius: 4px;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .page-header::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(196,181,253,0.2), transparent);
+    }
+    .page-header::after {
+        content: '';
+        position: absolute;
+        top: -40px; right: -40px;
+        width: 200px; height: 200px;
+        background: radial-gradient(circle, rgba(109,40,217,0.06) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .page-header-content h1 {
+        font-size: 2rem;
+        font-weight: 300;
+        font-family: 'Cormorant Garamond', serif;
+        font-style: italic;
+        color: #f1f5f9;
+        margin: 0 0 0.3rem;
+        letter-spacing: -0.3px;
+    }
+    .page-header-content p {
+        color: rgba(71,85,105,0.8);
+        margin: 0;
+        font-size: 0.8rem;
+        letter-spacing: 0.02em;
+        font-weight: 300;
+    }
+    .page-header-badge {
+        background: rgba(139,92,246,0.08);
+        border: 1px solid rgba(196,181,253,0.15);
+        border-radius: 2px;
+        padding: 0.35rem 1rem;
+        font-size: 0.62rem;
+        font-weight: 500;
+        font-family: 'DM Mono', monospace;
+        color: rgba(196,181,253,0.55);
+        white-space: nowrap;
+        margin-top: 0.25rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    /* ── Section labels ───────────────────────────────────────────────── */
     .section-label {
-        font-size: 0.7rem;
+        font-size: 0.65rem;
         font-weight: 700;
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: #64748b;
+        color: #475569;
         margin-bottom: 0.75rem;
-        margin-top: 0.25rem;
+        margin-top: 0.5rem;
     }
-
     .output-meta {
         font-size: 0.8rem;
-        color: #94a3b8;
+        color: #64748b;
         margin-bottom: 0.75rem;
+        font-family: 'DM Mono', monospace;
     }
 
-    /* ── Agent card (sidebar) ── */
-    .agent-card {
-        background: linear-gradient(135deg, #1e1b4b 0%, #1e3a5f 100%);
-        border: 1px solid rgba(99,102,241,0.4);
-        border-radius: 10px;
-        padding: 1rem 1.2rem;
-        margin-bottom: 0.75rem;
-    }
-    .agent-card h4 { color: #c7d2fe; margin: 0 0 0.25rem; font-size: 0.95rem; }
-    .agent-card p  { color: #94a3b8; margin: 0; font-size: 0.8rem; }
-
-    /* ── Dispatcher card ── */
+    /* ── Dispatcher card ──────────────────────────────────────────────── */
     .dispatch-card {
-        background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
-        border: 1px solid rgba(52,211,153,0.4);
-        border-radius: 10px;
-        padding: 1.25rem 1.5rem;
+        background: linear-gradient(135deg, #052e16 0%, #064e3b 100%);
+        border: 1px solid rgba(52,211,153,0.25);
+        border-radius: 12px;
+        padding: 1.5rem 1.75rem;
         margin: 1rem 0;
+        position: relative;
+        overflow: hidden;
     }
-    .dispatch-card h3 { color: #6ee7b7; margin: 0 0 0.5rem; font-size: 1.1rem; }
-    .dispatch-card p  { color: #a7f3d0; margin: 0.25rem 0; font-size: 0.88rem; line-height: 1.6; }
+    .dispatch-card::before {
+        content: '';
+        position: absolute;
+        top: -20px; right: -20px;
+        width: 100px; height: 100px;
+        background: radial-gradient(circle, rgba(52,211,153,0.1) 0%, transparent 70%);
+    }
+    .dispatch-card h3 {
+        color: #6ee7b7;
+        margin: 0 0 0.6rem;
+        font-size: 1.15rem;
+        font-weight: 700;
+    }
+    .dispatch-card p {
+        color: #a7f3d0;
+        margin: 0.3rem 0;
+        font-size: 0.87rem;
+        line-height: 1.65;
+    }
 
-    /* ── Writing output ── */
+    /* ── Writing output panel ─────────────────────────────────────────── */
     .writing-output {
-        background: #fafafa;
+        background: #ffffff;
         border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 2rem 2.5rem;
+        border-radius: 12px;
+        padding: 2.5rem 3rem;
         color: #1f2937;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     .write-heading {
         font-size: 1rem;
-        font-weight: 600;
+        font-weight: 700;
         color: #111827;
-        margin: 1.5rem 0 0.5rem;
-        padding-bottom: 0.25rem;
-        border-bottom: 1px solid #e5e7eb;
+        margin: 1.75rem 0 0.6rem;
+        padding-bottom: 0.35rem;
+        border-bottom: 2px solid #f3f4f6;
+        letter-spacing: -0.2px;
     }
     .write-para {
-        font-size: 0.93rem;
-        line-height: 1.85;
+        font-size: 0.94rem;
+        line-height: 1.9;
         color: #374151;
-        margin: 0 0 1rem;
+        margin: 0 0 1.1rem;
         text-align: justify;
     }
 
-    /* ── Assessment grid ── */
+    /* ── Assessment grid ──────────────────────────────────────────────── */
     .assess-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -1418,72 +1652,617 @@ def inject_css():
         margin: 1rem 0;
     }
     .assess-card {
-        background: #0f172a;
-        border: 1px solid rgba(148,163,184,0.15);
-        border-radius: 12px;
-        padding: 1.25rem 1.5rem;
+        background: #0d1424;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 14px;
+        padding: 1.4rem 1.6rem;
+        transition: border-color 0.2s;
     }
+    .assess-card:hover { border-color: rgba(99,102,241,0.2); }
     .assess-card-title {
-        font-size: 0.7rem;
+        font-size: 0.65rem;
         font-weight: 700;
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: #64748b;
-        margin-bottom: 0.6rem;
-    }
-    .assess-score {
-        font-size: 2rem;
-        font-weight: 700;
-        letter-spacing: -1px;
-        margin-bottom: 0.4rem;
-    }
-    .assess-label {
-        display: inline-block;
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 0.2rem 0.75rem;
-        border-radius: 999px;
+        color: #475569;
         margin-bottom: 0.75rem;
     }
+    .assess-score {
+        font-size: 2.4rem;
+        font-weight: 300;
+        letter-spacing: -2px;
+        margin-bottom: 0.5rem;
+        font-family: 'Cormorant Garamond', serif;
+        line-height: 1;
+    }
+    .assess-label {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 0.25rem 0.85rem;
+        border-radius: 999px;
+        margin-bottom: 0.85rem;
+        letter-spacing: 0.02em;
+    }
     .assess-desc {
-        font-size: 0.8rem;
-        color: #94a3b8;
-        line-height: 1.6;
+        font-size: 0.79rem;
+        color: #64748b;
+        line-height: 1.65;
     }
     .flag-pill {
         display: inline-block;
-        background: #1e293b;
+        background: rgba(245,158,11,0.08);
         color: #f59e0b;
-        border: 1px solid rgba(245,158,11,0.3);
+        border: 1px solid rgba(245,158,11,0.2);
         border-radius: 6px;
-        padding: 0.15rem 0.5rem;
-        font-size: 0.72rem;
-        margin: 0.15rem 0.15rem 0 0;
+        padding: 0.18rem 0.6rem;
+        font-size: 0.71rem;
+        font-weight: 500;
+        margin: 0.18rem 0.18rem 0 0;
     }
 
-    /* ── Buttons ── */
-    div[data-testid="stButton"] > button {
-        background: linear-gradient(135deg, #4f46e5, #7c3aed);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 0.5rem 1.5rem;
-        font-weight: 600;
-        transition: opacity 0.2s;
+    /* ── Cost summary bar ─────────────────────────────────────────────── */
+    .cost-summary-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        background: #0d1424;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 10px;
+        padding: 0.75rem 1.25rem;
+        margin-top: 0.75rem;
+        font-size: 0.82rem;
     }
-    div[data-testid="stButton"] > button:hover { opacity: 0.88; }
-
-    /* ── Cost pill (sidebar) ── */
-    .cost-pill {
-        display: inline-block;
-        background: #1e293b;
+    .cost-summary-label { color: #475569; font-weight: 500; }
+    .cost-summary-value {
         color: #38bdf8;
-        border: 1px solid rgba(56,189,248,0.3);
-        border-radius: 999px;
-        padding: 0.2rem 0.75rem;
-        font-size: 0.78rem;
-        font-weight: 600;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
     }
+    .cost-summary-sep { color: #1e293b; }
+
+    /* ── Buttons ──────────────────────────────────────────────────────── */
+    div[data-testid="stButton"] > button {
+        background: linear-gradient(135deg, #5b21b6 0%, #6d28d9 100%);
+        color: rgba(255,255,255,0.9);
+        border: none;
+        border-radius: 3px;
+        padding: 0.55rem 1.6rem;
+        font-weight: 400;
+        font-size: 0.82rem;
+        letter-spacing: 0.06em;
+        transition: all 0.25s;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 0 0 1px rgba(139,92,246,0.2);
+        text-transform: uppercase;
+    }
+    div[data-testid="stButton"] > button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(109,40,217,0.25), 0 0 0 1px rgba(196,181,253,0.2);
+        background: linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%);
+    }
+    div[data-testid="stButton"] > button:active { transform: translateY(0); }
+
+    /* Sign out button */
+    div[data-testid="stButton"] > button[kind="secondary"] {
+        background: transparent;
+        border: 1px solid rgba(255,255,255,0.08);
+        color: #64748b;
+        box-shadow: none;
+    }
+
+    /* ── Inputs & text areas ──────────────────────────────────────────── */
+    div[data-testid="stTextArea"] textarea,
+    div[data-testid="stTextInput"] input {
+        background: #0a0c18 !important;
+        border: 1px solid rgba(255,255,255,0.07) !important;
+        border-radius: 3px !important;
+        color: #e2e8f0 !important;
+        font-size: 0.88rem !important;
+        font-family: 'DM Sans', sans-serif !important;
+        transition: border-color 0.2s !important;
+    }
+    div[data-testid="stTextArea"] textarea:focus,
+    div[data-testid="stTextInput"] input:focus {
+        border-color: rgba(196,181,253,0.3) !important;
+        box-shadow: 0 0 0 3px rgba(139,92,246,0.07) !important;
+    }
+    div[data-testid="stTextArea"] textarea::placeholder,
+    div[data-testid="stTextInput"] input::placeholder {
+        color: #1e293b !important;
+    }
+    label[data-testid="stWidgetLabel"] > div > p {
+        color: #94a3b8 !important;
+        font-size: 0.82rem !important;
+        font-weight: 500 !important;
+    }
+
+    /* ── Selectbox ────────────────────────────────────────────────────── */
+    div[data-testid="stSelectbox"] > div > div {
+        background: #0a0c18 !important;
+        border: 1px solid rgba(255,255,255,0.07) !important;
+        border-radius: 3px !important;
+        color: #e2e8f0 !important;
+    }
+
+    /* ── Number input ─────────────────────────────────────────────────── */
+    div[data-testid="stNumberInput"] input {
+        background: #0a0c18 !important;
+        border: 1px solid rgba(255,255,255,0.07) !important;
+        border-radius: 3px !important;
+        color: #e2e8f0 !important;
+    }
+
+    /* ── File uploader ────────────────────────────────────────────────── */
+    div[data-testid="stFileUploader"] {
+        background: #0a0c18 !important;
+        border: 1px dashed rgba(196,181,253,0.15) !important;
+        border-radius: 3px !important;
+    }
+    div[data-testid="stFileUploader"] label { color: #475569 !important; }
+
+    /* ── Expander ─────────────────────────────────────────────────────── */
+    div[data-testid="stExpander"] {
+        background: #0a0c18 !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        border-radius: 3px !important;
+        overflow: hidden;
+    }
+    div[data-testid="stExpander"] summary {
+        color: #94a3b8 !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+        padding: 0.75rem 1rem !important;
+    }
+
+    /* ── Metrics ──────────────────────────────────────────────────────── */
+    div[data-testid="stMetric"] {
+        background: #0a0c18;
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 3px;
+        padding: 1rem 1.25rem;
+    }
+    div[data-testid="stMetricLabel"] p { color: #64748b !important; font-size: 0.75rem !important; }
+    div[data-testid="stMetricValue"]  { color: #f1f5f9 !important; font-weight: 700 !important; }
+
+    /* ── Horizontal rule ──────────────────────────────────────────────── */
+    hr { border-color: rgba(255,255,255,0.06) !important; }
+
+    /* ── Info / warning / error / success boxes ───────────────────────── */
+    div[data-testid="stAlert"] {
+        border-radius: 10px !important;
+        border: none !important;
+    }
+
+    /* ── Step headings ────────────────────────────────────────────────── */
+    h3 { color: #e2e8f0 !important; font-weight: 400 !important; font-family: 'Cormorant Garamond', serif !important; font-style: italic !important; letter-spacing: 0 !important; }
+    h2 { color: #f1f5f9 !important; font-weight: 300 !important; font-family: 'Cormorant Garamond', serif !important; font-style: italic !important; letter-spacing: -0.3px !important; }
+
+    /* ── Caption ──────────────────────────────────────────────────────── */
+    div[data-testid="stCaptionContainer"] p { color: #475569 !important; font-size: 0.8rem !important; }
+
+    /* ── Download buttons ─────────────────────────────────────────────── */
+    div[data-testid="stDownloadButton"] > button {
+        background: #0d1424 !important;
+        color: #94a3b8 !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        box-shadow: none !important;
+    }
+    div[data-testid="stDownloadButton"] > button:hover {
+        background: #141d30 !important;
+        color: #e2e8f0 !important;
+        border-color: rgba(99,102,241,0.3) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* ── Auth screen ──────────────────────────────────────────────────── */
+    .auth-screen {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .auth-card {
+        background: linear-gradient(160deg, #0d0f1e 0%, #110d1f 50%, #0a0f1c 100%);
+        border: 1px solid rgba(196,181,253,0.12);
+        border-radius: 4px;
+        padding: 3.5rem 3rem 2.5rem;
+        width: 380px;
+        text-align: center;
+        box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 60px rgba(139,92,246,0.06), 0 0 0 1px rgba(196,181,253,0.05);
+        position: relative;
+        overflow: hidden;
+    }
+    .auth-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 50%;
+        transform: translateX(-50%);
+        width: 1px;
+        height: 60px;
+        background: linear-gradient(to bottom, rgba(196,181,253,0.5), transparent);
+        pointer-events: none;
+    }
+    .auth-card::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent 0%, rgba(196,181,253,0.4) 30%, rgba(139,92,246,0.6) 50%, rgba(196,181,253,0.4) 70%, transparent 100%);
+    }
+    .auth-logo {
+        font-size: 1rem;
+        font-family: 'DM Mono', monospace;
+        letter-spacing: 0.25em;
+        color: rgba(196,181,253,0.4);
+        text-transform: uppercase;
+        margin-bottom: 2rem;
+        display: block;
+    }
+    .auth-title {
+        font-size: 3.2rem;
+        font-weight: 300;
+        font-family: 'Cormorant Garamond', serif;
+        font-style: italic;
+        color: #f8fafc;
+        margin-bottom: 0.4rem;
+        letter-spacing: -0.5px;
+        line-height: 1;
+    }
+    .auth-subtitle {
+        font-size: 0.72rem;
+        color: rgba(148,163,184,0.5);
+        margin-bottom: 3rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-weight: 400;
+    }
+
+    /* ── Hero ─────────────────────────────────────────────────────────── */
+    .hero {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(160deg, #06080f 0%, #0e0b1a 45%, #060d1a 100%);
+        border: 1px solid rgba(196,181,253,0.08);
+        border-radius: 4px;
+        padding: 5rem 4rem 4.5rem;
+        margin-bottom: 1.2rem;
+        text-align: center;
+    }
+    .hero::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent 0%, rgba(196,181,253,0.35) 25%, rgba(139,92,246,0.55) 50%, rgba(196,181,253,0.35) 75%, transparent 100%);
+    }
+    .hero::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+            radial-gradient(circle at 20% 50%, rgba(109,40,217,0.07) 0%, transparent 55%),
+            radial-gradient(circle at 80% 20%, rgba(14,165,233,0.05) 0%, transparent 50%),
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+        pointer-events: none;
+    }
+    .hero-glow {
+        position: absolute;
+        width: 500px; height: 500px;
+        border-radius: 50%;
+        filter: blur(110px);
+        pointer-events: none;
+        opacity: 0.18;
+    }
+    .hero-glow-left  { background: radial-gradient(circle, #6d28d9, transparent 70%); top: -150px; left: -150px; }
+    .hero-glow-right { background: radial-gradient(circle, #0ea5e9, transparent 70%); bottom: -150px; right: -150px; opacity: 0.12; }
+    .hero-inner { position: relative; z-index: 1; }
+    .hero-eyebrow {
+        font-size: 0.6rem;
+        font-weight: 500;
+        letter-spacing: 0.28em;
+        color: rgba(196,181,253,0.45);
+        margin-bottom: 1.8rem;
+        text-transform: uppercase;
+        font-family: 'DM Mono', monospace;
+    }
+    .hero-eyebrow span {
+        display: inline-block;
+        width: 24px;
+        height: 1px;
+        background: rgba(196,181,253,0.3);
+        vertical-align: middle;
+        margin: 0 0.75rem;
+    }
+    .hero-title {
+        font-size: 3.8rem !important;
+        font-weight: 300 !important;
+        font-family: 'Cormorant Garamond', serif !important;
+        font-style: italic !important;
+        color: #f8fafc !important;
+        letter-spacing: -1px !important;
+        line-height: 1.1 !important;
+        margin: 0 0 0.15rem !important;
+    }
+    .hero-title-plain {
+        font-size: 3.8rem;
+        font-weight: 300;
+        font-family: 'Cormorant Garamond', serif;
+        font-style: normal;
+        color: rgba(248,250,252,0.55);
+        letter-spacing: -1px;
+        line-height: 1.1;
+        display: block;
+        margin-bottom: 2rem;
+    }
+    .hero-subtitle {
+        font-size: 0.88rem;
+        color: rgba(100,116,139,0.8);
+        max-width: 460px;
+        margin: 0 auto;
+        line-height: 1.85;
+        font-weight: 300;
+        letter-spacing: 0.01em;
+    }
+    .hero-divider {
+        width: 40px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(196,181,253,0.4), transparent);
+        margin: 2rem auto 1.5rem;
+    }
+
+    /* ── Capability grid ──────────────────────────────────────────────── */
+    .capability-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0.75rem;
+        margin-bottom: 1.2rem;
+    }
+    .cap-card {
+        background: linear-gradient(145deg, #0c0e1a 0%, #0a0c18 100%);
+        border: 1px solid rgba(255,255,255,0.045);
+        border-radius: 4px;
+        padding: 1.6rem 1.5rem 1.5rem;
+        transition: border-color 0.3s, transform 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+    .cap-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(196,181,253,0.15), transparent);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    .cap-card:hover {
+        border-color: rgba(196,181,253,0.14);
+        transform: translateY(-3px);
+    }
+    .cap-card:hover::before { opacity: 1; }
+    .cap-num {
+        font-size: 0.6rem;
+        font-family: 'DM Mono', monospace;
+        color: rgba(196,181,253,0.25);
+        letter-spacing: 0.15em;
+        margin-bottom: 1.2rem;
+        display: block;
+    }
+    .cap-icon  { font-size: 1.3rem; margin-bottom: 0.75rem; opacity: 0.8; }
+    .cap-title {
+        font-size: 0.88rem;
+        font-weight: 500;
+        color: #e2e8f0;
+        margin-bottom: 0.2rem;
+        letter-spacing: 0.01em;
+    }
+    .cap-agents{
+        font-size: 0.68rem;
+        color: rgba(196,181,253,0.35);
+        margin-bottom: 1rem;
+        font-family: 'DM Mono', monospace;
+        letter-spacing: 0.06em;
+    }
+    .cap-tags  { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .cap-tag   {
+        background: rgba(139,92,246,0.06);
+        border: 1px solid rgba(139,92,246,0.14);
+        color: rgba(196,181,253,0.6);
+        font-size: 0.62rem;
+        font-weight: 500;
+        padding: 0.18rem 0.6rem;
+        border-radius: 2px;
+        letter-spacing: 0.03em;
+    }
+
+    /* ── How it works ─────────────────────────────────────────────────── */
+    .how-it-works {
+        background: linear-gradient(145deg, #0c0e1a 0%, #090b16 100%);
+        border: 1px solid rgba(255,255,255,0.04);
+        border-radius: 4px;
+        padding: 2rem 2.5rem;
+        margin-bottom: 0.5rem;
+        position: relative;
+    }
+    .how-it-works::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(196,181,253,0.12), transparent);
+    }
+    .hiw-label {
+        font-size: 0.55rem;
+        font-weight: 500;
+        letter-spacing: 0.22em;
+        color: rgba(196,181,253,0.25);
+        margin-bottom: 1.5rem;
+        font-family: 'DM Mono', monospace;
+        text-transform: uppercase;
+    }
+    .hiw-steps {
+        display: flex;
+        align-items: flex-start;
+        gap: 0;
+        flex-wrap: nowrap;
+    }
+    .hiw-step { display: flex; align-items: flex-start; gap: 0.75rem; flex: 1; }
+    .hiw-num  {
+        font-size: 0.7rem;
+        font-weight: 400;
+        color: rgba(196,181,253,0.2);
+        font-family: 'DM Mono', monospace;
+        line-height: 1;
+        padding-top: 0.1rem;
+        flex-shrink: 0;
+        letter-spacing: 0.05em;
+    }
+    .hiw-text strong {
+        display: block;
+        font-size: 0.8rem;
+        color: rgba(226,232,240,0.85);
+        font-weight: 500;
+        margin-bottom: 0.3rem;
+        font-family: 'DM Sans', sans-serif;
+    }
+    .hiw-text span   { font-size: 0.72rem; color: rgba(71,85,105,0.9); line-height: 1.5; }
+    .hiw-arrow {
+        color: rgba(196,181,253,0.1);
+        font-size: 0.8rem;
+        flex-shrink: 0;
+        padding: 0 0.75rem;
+        padding-top: 0.05rem;
+        align-self: flex-start;
+        margin-top: 0.1rem;
+    }
+
+    /* ── Step headers ─────────────────────────────────────────────────── */
+    .step-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 0.25rem 0 0.85rem;
+    }
+    .step-num {
+        font-size: 0.6rem;
+        font-weight: 400;
+        font-family: 'DM Mono', monospace;
+        background: rgba(139,92,246,0.07);
+        border: 1px solid rgba(196,181,253,0.15);
+        color: rgba(196,181,253,0.5);
+        padding: 0.28rem 0.65rem;
+        border-radius: 2px;
+        letter-spacing: 0.1em;
+        flex-shrink: 0;
+    }
+    .step-title {
+        font-size: 1rem;
+        font-weight: 400;
+        font-family: 'Cormorant Garamond', serif;
+        font-style: italic;
+        color: #e2e8f0;
+        margin-bottom: 0.1rem;
+        letter-spacing: 0.01em;
+    }
+    .step-hint  { font-size: 0.75rem; color: #334155; font-weight: 300; }
+
+    /* ── Inline hints ─────────────────────────────────────────────────── */
+    .inline-hint {
+        font-size: 0.78rem;
+        font-weight: 500;
+        padding: 0.45rem 0.85rem;
+        border-radius: 8px;
+        margin-top: 0.5rem;
+        display: inline-block;
+    }
+    .inline-hint.warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #f59e0b; }
+    .inline-hint.ok   { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);  color: #10b981; }
+
+    /* ── Dispatch card badge ──────────────────────────────────────────── */
+    .dispatch-badge {
+        display: inline-block;
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        padding: 0.2rem 0.65rem;
+        border-radius: 999px;
+        margin-bottom: 0.6rem;
+    }
+
+    /* ── Word count widget ────────────────────────────────────────────── */
+    .word-count-widget {
+        background: rgba(99,102,241,0.06);
+        border: 1px solid rgba(99,102,241,0.15);
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        margin-top: 0.5rem;
+    }
+    .wcw-val   { font-size: 2rem; font-weight: 300; color: #c4b5fd; font-family: 'Cormorant Garamond', serif; letter-spacing: -1px; }
+    .wcw-label { font-size: 0.75rem; font-weight: 400; color: #64748b; margin-top: 0.1rem; }
+    .wcw-sub   { font-size: 0.67rem; color: #334155; margin-top: 0.2rem; }
+
+    /* ── Upload feedback panel ────────────────────────────────────────── */
+    .upload-empty {
+        text-align: center;
+        padding: 1.1rem 0.75rem;
+        background: rgba(255,255,255,0.02);
+        border: 1px dashed rgba(255,255,255,0.06);
+        border-radius: 10px;
+        margin: 0.25rem 0.5rem 0.75rem;
+    }
+    .upload-empty-icon { font-size: 1.4rem; opacity: 0.4; margin-bottom: 0.3rem; }
+    .upload-empty-text { font-size: 0.78rem; color: #334155; font-weight: 500; }
+    .upload-empty-hint { font-size: 0.68rem; color: #1e293b; margin-top: 0.15rem; }
+
+    .upload-feedback {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 10px;
+        padding: 0.85rem 0.9rem 0.7rem;
+        margin: 0.25rem 0.5rem 0.5rem;
+    }
+    .upload-count-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.65rem;
+    }
+    .upload-count { font-size: 1.6rem; font-weight: 300; font-family: 'Cormorant Garamond', serif; line-height: 1; }
+    .upload-count-label { font-size: 0.75rem; color: #64748b; font-weight: 500; flex: 1; }
+    .upload-quality-badge {
+        font-size: 0.62rem; font-weight: 700;
+        padding: 0.18rem 0.55rem; border-radius: 999px;
+        letter-spacing: 0.05em;
+    }
+    .upload-file-list { display: flex; flex-direction: column; gap: 0.3rem; }
+    .upload-file-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(255,255,255,0.03);
+        border-radius: 6px;
+        padding: 0.28rem 0.5rem;
+    }
+    .upload-file-ext  { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.04em; flex-shrink: 0; }
+    .upload-file-name { font-size: 0.73rem; color: #94a3b8; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .upload-file-size { font-size: 0.67rem; color: #334155; flex-shrink: 0; }
+    .upload-tip {
+        font-size: 0.72rem; color: #475569;
+        padding: 0.3rem 0.5rem 0.25rem;
+        font-style: italic;
+    }
+
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -1495,18 +2274,18 @@ def auth_gate():
     if st.session_state.get("authenticated"):
         return True
 
-    st.markdown("""
-    <div class="agent43-header">
-        <h1>🔬 Agent43</h1>
-        <p>AI-Powered Academic Writing System — Restricted Access</p>
-    </div>
-    """, unsafe_allow_html=True)
-
     col1, col2, col3 = st.columns([1.5, 1, 1.5])
     with col2:
-        st.markdown("### Access")
+        st.markdown("""
+        <div class="auth-card">
+            <span class="auth-logo">A G E N T · 4 3</span>
+            <div class="auth-title">Académie</div>
+            <div class="auth-subtitle">AI Writing System · Restricted Access</div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         pwd = st.text_input("Password", type="password", label_visibility="collapsed",
-                            placeholder="Enter password...")
+                            placeholder="Enter access password...")
         if st.button("Enter", use_container_width=True):
             if pwd == APP_PASSWORD:
                 st.session_state["authenticated"] = True
@@ -1521,147 +2300,350 @@ def auth_gate():
 
 def render_sidebar():
     with st.sidebar:
-        st.markdown("## 🔬 Agent43")
-        st.markdown("---")
+        st.markdown("""
+        <div class="sidebar-brand">
+            <span class="sidebar-logo">◈</span>
+            <span class="sidebar-title">Agent43</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
 
         # Navigation
-        page = st.radio("Navigate", ["✍️ Write", "📊 Dashboard", "📚 History", "⚙️ Setup"],
+        page = st.radio("nav", ["✍️  Write", "📊  Dashboard", "📚  History"],
                         label_visibility="collapsed")
-        st.markdown("---")
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+
+        # ── Reference Materials Upload ─────────────────────────────────
+        st.markdown('<div class="sidebar-section-label">Reference Materials</div>', unsafe_allow_html=True)
+
+        uploaded_files = st.file_uploader(
+            "upload_refs",
+            accept_multiple_files=True,
+            type=["pdf", "docx", "txt"],
+            label_visibility="collapsed",
+            help="Upload PDFs, Word docs, or text files. Citations will be drawn only from these.",
+            key="sidebar_uploads"
+        )
+
+        # Store in session state so page_write can access them
+        st.session_state["uploaded_files"] = uploaded_files or []
+
+        # Feedback panel
+        n = len(uploaded_files) if uploaded_files else 0
+        if n == 0:
+            st.markdown("""
+            <div class="upload-empty">
+                <div class="upload-empty-icon">📂</div>
+                <div class="upload-empty-text">No papers uploaded yet</div>
+                <div class="upload-empty-hint">PDF · DOCX · TXT</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            badge_color = "#10b981" if n >= 3 else "#f59e0b" if n >= 1 else "#ef4444"
+            badge_bg    = "#022c22" if n >= 3 else "#2d1a00" if n >= 1 else "#2d0000"
+            quality_label = "Excellent" if n >= 4 else "Good" if n >= 2 else "Minimal"
+            st.markdown(f"""
+            <div class="upload-feedback">
+                <div class="upload-count-row">
+                    <span class="upload-count" style="color:{badge_color};">{n}</span>
+                    <span class="upload-count-label">paper{"s" if n != 1 else ""} loaded</span>
+                    <span class="upload-quality-badge" style="background:{badge_bg};color:{badge_color};">{quality_label}</span>
+                </div>
+                <div class="upload-file-list">
+            """, unsafe_allow_html=True)
+
+            for f in uploaded_files:
+                ext  = f.name.rsplit(".", 1)[-1].upper() if "." in f.name else "FILE"
+                size = f"{f.size / 1024:.0f} KB" if hasattr(f, "size") else ""
+                ext_color = {"PDF": "#f87171", "DOCX": "#60a5fa", "TXT": "#a3e635"}.get(ext, "#94a3b8")
+                short_name = f.name[:24] + "…" if len(f.name) > 26 else f.name
+                st.markdown(f"""
+                    <div class="upload-file-row">
+                        <span class="upload-file-ext" style="color:{ext_color};">{ext}</span>
+                        <span class="upload-file-name">{short_name}</span>
+                        <span class="upload-file-size">{size}</span>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown("""
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if n < 2:
+                st.markdown('<div class="upload-tip">💡 Add more sources for richer citation synthesis</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
 
         # Total cost
         total = get_total_cost()
-        st.markdown(f"**Cumulative Cost**")
-        st.markdown(f"<span class='cost-pill'>💰 ${total:.4f} USD</span>", unsafe_allow_html=True)
-        st.markdown("---")
+        st.markdown(f"""
+        <div class="sidebar-cost-block">
+            <div class="sidebar-cost-label">Cumulative Spend</div>
+            <div class="sidebar-cost-value">${total:.4f} <span class="sidebar-cost-unit">USD</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
 
         # Agent registry
-        st.markdown("**Agent Registry**")
+        st.markdown('<div class="sidebar-section-label">Agent Registry</div>', unsafe_allow_html=True)
         for cls, agents in CLASS_AGENTS.items():
             with st.expander(cls, expanded=False):
                 for a in agents:
                     info = AGENTS[a]
                     st.markdown(f"""
                     <div class="agent-card">
-                        <h4>{a}</h4>
-                        <p>{info['signature']}</p>
+                        <div class="agent-card-name">{a}</div>
+                        <div class="agent-card-sig">{info['signature']}</div>
                     </div>
                     """, unsafe_allow_html=True)
 
-        st.markdown("---")
-        if st.button("🔒 Logout"):
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+        if st.button("🔒  Sign Out", use_container_width=True):
             st.session_state.clear()
             st.rerun()
 
-    return page.split(" ", 1)[1]  # strip emoji
+    raw = page.strip()
+    return raw.split("  ", 1)[1] if "  " in raw else raw.split(" ", 1)[1]
 
 # ─────────────────────────────────────────────
 #  PAGE: WRITE
 # ─────────────────────────────────────────────
 
 def page_write():
-    st.markdown("""
-    <div class="agent43-header">
-        <h1>🔬 Agent43</h1>
-        <p>Academic Writing System — Nine Agents. Three Disciplines. Zero Hallucinated Citations.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ── STEP 1: Assessment Context ─────────────────────────────────────
-    st.markdown("### Step 1 — Assessment Context")
-    context = st.text_area("Paste your assessment brief or context here",
-                           height=140, placeholder="Describe the assessment topic, question, or brief...")
-
-    # ── STEP 2: Dispatcher ─────────────────────────────────────────────
+    uploaded_files = st.session_state.get("uploaded_files", [])
+    n_papers       = len(uploaded_files)
     dispatch_result = st.session_state.get("dispatch_result")
     selected_agent  = st.session_state.get("selected_agent")
+    has_output      = bool(st.session_state.get("last_output"))
 
-    if context.strip() and not dispatch_result:
-        if st.button("🎯 Analyse & Recommend Agent", use_container_width=False):
-            with st.spinner("Dispatcher analysing brief..."):
-                result = run_dispatcher(context)
-                st.session_state["dispatch_result"] = result
-                st.session_state["selected_agent"]  = result.get("recommended", "Agent Alpha")
-                st.rerun()
-
-    if dispatch_result:
-        rec = dispatch_result
-        st.markdown(f"""
-        <div class="dispatch-card">
-            <h3>⚡ {rec.get('recommended', 'N/A')}</h3>
-            <p><strong>Class:</strong> {rec.get('class', '')} &nbsp;|&nbsp;
-               <strong>Confidence:</strong> {rec.get('confidence', '')}</p>
-            <p><strong>Why:</strong> {rec.get('reasoning', '')}</p>
-            <p><em>Others in class: {rec.get('not_alpha', '')} / {rec.get('not_beta', '')}</em></p>
+    # ══════════════════════════════════════════════════════════════════
+    # HERO — only shown before any output exists
+    # ══════════════════════════════════════════════════════════════════
+    if not has_output:
+        st.markdown("""
+        <div class="hero">
+            <div class="hero-glow hero-glow-left"></div>
+            <div class="hero-glow hero-glow-right"></div>
+            <div class="hero-inner">
+                <div class="hero-eyebrow"><span></span>AI-Powered Academic Writing System<span></span></div>
+                <h1 class="hero-title">Write with the precision</h1>
+                <span class="hero-title-plain">of a first-class scholar.</span>
+                <div class="hero-divider"></div>
+                <p class="hero-subtitle">
+                    Nine specialist agents. Three disciplines. Citations sourced exclusively
+                    from your uploaded references — zero hallucinations, every time.
+                </p>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Override
-        all_agents = list(AGENTS.keys())
-        override = st.selectbox("Confirm or override agent selection",
-                                all_agents,
-                                index=all_agents.index(rec.get("recommended", all_agents[0])))
-        st.session_state["selected_agent"] = override
+        st.markdown("""
+        <div class="capability-grid">
+            <div class="cap-card">
+                <span class="cap-num">001</span>
+                <div class="cap-icon">🌐</div>
+                <div class="cap-title">International Business</div>
+                <div class="cap-agents">Alpha · Beta · Gamma</div>
+                <div class="cap-tags">
+                    <span class="cap-tag">FDI Theory</span>
+                    <span class="cap-tag">Institutional Economics</span>
+                    <span class="cap-tag">Global Strategy</span>
+                </div>
+            </div>
+            <div class="cap-card">
+                <span class="cap-num">002</span>
+                <div class="cap-icon">📣</div>
+                <div class="cap-title">International Marketing</div>
+                <div class="cap-agents">Delta · Epsilon · Zeta</div>
+                <div class="cap-tags">
+                    <span class="cap-tag">Brand Equity</span>
+                    <span class="cap-tag">Cultural Intelligence</span>
+                    <span class="cap-tag">Consumer Behaviour</span>
+                </div>
+            </div>
+            <div class="cap-card">
+                <span class="cap-num">003</span>
+                <div class="cap-icon">🏥</div>
+                <div class="cap-title">Health &amp; Social Care</div>
+                <div class="cap-agents">Eta · Theta · Iota</div>
+                <div class="cap-tags">
+                    <span class="cap-tag">Reflective Practice</span>
+                    <span class="cap-tag">Policy &amp; Law</span>
+                    <span class="cap-tag">Social Justice</span>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        if st.button("🔄 Re-run Dispatcher"):
-            st.session_state.pop("dispatch_result", None)
-            st.session_state.pop("selected_agent", None)
-            st.rerun()
+        st.markdown("""
+        <div class="how-it-works">
+            <div class="hiw-label">— How it works —</div>
+            <div class="hiw-steps">
+                <div class="hiw-step">
+                    <div class="hiw-num">01</div>
+                    <div class="hiw-text">
+                        <strong>Upload references</strong>
+                        <span>Drop PDFs or Word docs in the sidebar panel</span>
+                    </div>
+                </div>
+                <div class="hiw-arrow">›</div>
+                <div class="hiw-step">
+                    <div class="hiw-num">02</div>
+                    <div class="hiw-text">
+                        <strong>Describe your brief</strong>
+                        <span>Paste your assessment question below</span>
+                    </div>
+                </div>
+                <div class="hiw-arrow">›</div>
+                <div class="hiw-step">
+                    <div class="hiw-num">03</div>
+                    <div class="hiw-text">
+                        <strong>Agent recommends</strong>
+                        <span>Dispatcher selects the best specialist</span>
+                    </div>
+                </div>
+                <div class="hiw-arrow">›</div>
+                <div class="hiw-step">
+                    <div class="hiw-num">04</div>
+                    <div class="hiw-text">
+                        <strong>Write &amp; assess</strong>
+                        <span>Essay streams live with originality report</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="height:1.5rem"></div>
+        """, unsafe_allow_html=True)
 
-    # ── STEP 3: Writing Brief ──────────────────────────────────────────
-    if selected_agent:
-        st.markdown(f"---\n### Step 2 — Brief for **{selected_agent}**")
+    # ══════════════════════════════════════════════════════════════════
+    # STEP 1 — Assessment Brief
+    # ══════════════════════════════════════════════════════════════════
+    if not has_output:
+        st.markdown("""
+        <div class="step-header">
+            <span class="step-num">01</span>
+            <div>
+                <div class="step-title">Assessment Brief</div>
+                <div class="step-hint">Paste your question, topic, or full assessment context</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        context = st.text_area(
+            "brief", height=160, label_visibility="collapsed",
+            placeholder="e.g.  Critically evaluate the role of institutional voids in shaping entry strategies of MNEs in emerging markets. Discuss with reference to relevant theory and empirical evidence..."
+        )
+
+        if n_papers == 0:
+            st.markdown('<div class="inline-hint warn">⚠️  No references uploaded — add PDFs in the sidebar before generating</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="inline-hint ok">✓  {n_papers} reference{"s" if n_papers!=1 else ""} ready · citations sourced exclusively from your documents</div>', unsafe_allow_html=True)
+
+    # ══════════════════════════════════════════════════════════════════
+    # STEP 2 — Dispatcher
+    # ══════════════════════════════════════════════════════════════════
+    if not has_output:
+        if 'context' not in dir():
+            context = ""
+
+        if context.strip() and not dispatch_result:
+            st.markdown("<div style='margin:1rem 0 0.5rem'></div>", unsafe_allow_html=True)
+            if st.button("⚡  Analyse Brief & Recommend Agent"):
+                with st.spinner("Dispatcher reading your brief..."):
+                    result = run_dispatcher(context)
+                    st.session_state["dispatch_result"] = result
+                    st.session_state["selected_agent"]  = result.get("recommended", "Agent Alpha")
+                    st.rerun()
+
+        if dispatch_result:
+            rec = dispatch_result
+            conf = rec.get("confidence", "")
+            conf_color = {"High": "#10b981", "Medium": "#f59e0b", "Low": "#94a3b8"}.get(conf, "#94a3b8")
+            conf_bg    = {"High": "#022c22", "Medium": "#2d1a00", "Low": "#1e293b"}.get(conf, "#1e293b")
+            st.markdown(f"""
+            <div class="dispatch-card">
+                <div class="dispatch-badge" style="background:{conf_bg};color:{conf_color};">{conf.upper()} CONFIDENCE</div>
+                <h3>⚡ {rec.get('recommended','N/A')}</h3>
+                <p><strong>Discipline:</strong> {rec.get('class','')}</p>
+                <p><strong>Rationale:</strong> {rec.get('reasoning','')}</p>
+                <p style="opacity:0.55;font-size:0.78rem;margin-top:0.5rem;">{rec.get('not_alpha','')} · {rec.get('not_beta','')}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            all_agents = list(AGENTS.keys())
+            override = st.selectbox("Confirm or override agent",
+                                    all_agents,
+                                    index=all_agents.index(rec.get("recommended", all_agents[0])))
+            st.session_state["selected_agent"] = override
+
+            if st.button("🔄  Re-run Dispatcher"):
+                st.session_state.pop("dispatch_result", None)
+                st.session_state.pop("selected_agent", None)
+                st.rerun()
+
+    # ══════════════════════════════════════════════════════════════════
+    # STEP 3 — Writing Brief
+    # ══════════════════════════════════════════════════════════════════
+    if selected_agent and not has_output:
+        st.markdown('<hr style="border-color:rgba(255,255,255,0.05);margin:1.75rem 0 1.25rem">', unsafe_allow_html=True)
         agent_info = AGENTS[selected_agent]
-        st.caption(f"{agent_info['class']} · {agent_info['signature']}")
 
-        col1, col2 = st.columns([2, 1])
+        st.markdown(f"""
+        <div class="step-header">
+            <span class="step-num">02</span>
+            <div>
+                <div class="step-title">Brief for <span style="color:#a5b4fc">{selected_agent}</span></div>
+                <div class="step-hint">{agent_info['class']} · {agent_info['signature']}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col1, col2 = st.columns([3, 1])
         with col1:
-            structure = st.text_area("Structure / Outline",
-                                     height=120,
-                                     placeholder="e.g.\n1. Introduction\n2. Literature Review\n3. Critical Analysis\n4. Conclusion\n5. References")
-            rubric = st.text_area("Marking Rubric (optional)",
-                                  height=100,
-                                  placeholder="Paste marking criteria here if available...")
-        with col2:
-            word_count = st.number_input("Target Word Count", min_value=200, max_value=8000,
-                                         value=1500, step=100)
-            uploaded_files = st.file_uploader(
-                "Upload Reference Materials",
-                accept_multiple_files=True,
-                type=["pdf", "docx", "txt"],
-                help="Citations will be drawn ONLY from these documents"
+            structure = st.text_area(
+                "Essay Structure / Outline", height=130,
+                placeholder="e.g.\n1. Introduction\n2. Literature Review\n3. Critical Analysis\n4. Conclusion\n5. References"
             )
+            rubric = st.text_area(
+                "Marking Rubric (optional)", height=90,
+                placeholder="Paste marking criteria here — the agent will align its writing to each criterion..."
+            )
+        with col2:
+            word_count = st.number_input("Target Words", min_value=200, max_value=8000,
+                                         value=1500, step=100)
+            st.markdown(f"""
+            <div class="word-count-widget">
+                <div class="wcw-val">{word_count:,}</div>
+                <div class="wcw-label">body words</div>
+                <div class="wcw-sub">references excluded</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # ── STEP 4: Generate ──────────────────────────────────────────
-        st.markdown("---")
-        if st.button(f"✍️ Generate with {selected_agent}", use_container_width=False):
+        st.markdown("<div style='margin-top:1.25rem'></div>", unsafe_allow_html=True)
+        if st.button(f"✍️  Generate with {selected_agent}", use_container_width=False):
             if not context.strip():
-                st.error("Please provide an assessment context.")
+                st.error("Please provide an assessment brief.")
                 return
             if not structure.strip():
-                st.error("Please provide a structure.")
+                st.error("Please provide an essay structure.")
                 return
             if not uploaded_files:
-                st.warning("⚠️ No reference materials uploaded. The agent will note this — citations may be limited.")
+                st.warning("⚠️ No reference materials uploaded — the agent will write without citations.")
 
             source_texts = []
-            if uploaded_files:
-                for f in uploaded_files:
-                    txt = extract_text_from_file(f)
-                    if txt:
-                        source_texts.append(txt)
+            for f in uploaded_files:
+                txt = extract_text_from_file(f)
+                if txt:
+                    source_texts.append(txt)
 
-            # ── Stage 1 & 2 spinner (fast, no streaming yet) ──────
             stage_status = st.empty()
             stage_status.info("⚙️ Stage 1 — Extracting citation index from sources...")
-
-            # We run stages 1+2 first, then stream stage 3
-            # Use a placeholder that will become the live essay
-            st.markdown("---")
-            st.markdown('<div class="section-label">Writing — Live Output</div>',
-                        unsafe_allow_html=True)
+            st.markdown('<hr style="border-color:rgba(255,255,255,0.05)">', unsafe_allow_html=True)
+            st.markdown('<div class="section-label">Live Output</div>', unsafe_allow_html=True)
             stream_box = st.empty()
-
             stage_status.info("⚙️ Stage 2 — Building section plan...")
 
             output, tok_in, tok_out, cost = run_writer(
@@ -1669,19 +2651,7 @@ def page_write():
                 rubric, word_count, source_texts,
                 stream_container=stream_box
             )
-
             stage_status.success("✅ Write-up complete.")
-
-            # ── Persist immediately to Supabase ───────────────────
-            # Save before assessment so a page refresh never loses the output.
-            # assessment_done stays False — assessment still needs to be run.
-            cleaned_for_save = clean_output_text(output)
-            body_wc_for_save = count_body_words(cleaned_for_save)
-            writing_id = save_writing(
-                selected_agent, agent_info["class"],
-                context, body_wc_for_save, cleaned_for_save,
-                tok_in, tok_out, cost
-            )
 
             st.session_state["last_output"]       = output
             st.session_state["last_agent"]        = selected_agent
@@ -1693,7 +2663,6 @@ def page_write():
             st.session_state["last_tokens_out"]   = tok_out
             st.session_state["last_cost"]         = cost
             st.session_state["last_source_texts"] = source_texts
-            st.session_state["last_writing_id"]   = writing_id
             st.session_state["assessment_done"]   = False
             st.rerun()
 
@@ -1739,26 +2708,37 @@ def page_write():
 
         if not st.session_state.get("assessment_done"):
             if st.button("🔍 Run Assessment", use_container_width=False):
-                with st.spinner("Running similarity checks, risk assessment, and citation verification..."):
-                    src_sim    = check_source_similarity(cleaned_output, source_texts) if source_texts else None
-                    hist_sim   = check_history_similarity(cleaned_output)
-                    risk       = run_risk_assessment(cleaned_output)
-                    cite_check = run_citation_verification(cleaned_output)
-                st.session_state["assess_src_sim"]   = src_sim
-                st.session_state["assess_hist_sim"]  = hist_sim
-                st.session_state["assess_risk"]      = risk
-                st.session_state["assess_cite_check"]= cite_check
-                st.session_state["assess_cost"]      = st.session_state["last_cost"]
-                st.session_state["assessment_done"]  = True
+                with st.spinner("Running similarity checks, risk assessment, and originality analysis..."):
+                    src_sim      = check_source_similarity(cleaned_output, source_texts) if source_texts else None
+                    hist_sim     = check_history_similarity(cleaned_output)
+                    risk         = run_risk_assessment(cleaned_output)
+                    originality  = run_originality_score(cleaned_output, source_texts)
+                    cite_check   = run_citation_verification(cleaned_output)
+                    save_writing(
+                        agent_name, discipline,
+                        st.session_state["last_context"],
+                        body_words, cleaned_output,
+                        st.session_state["last_tokens_in"],
+                        st.session_state["last_tokens_out"],
+                        st.session_state["last_cost"]
+                    )
+                st.session_state["assess_src_sim"]    = src_sim
+                st.session_state["assess_hist_sim"]   = hist_sim
+                st.session_state["assess_risk"]       = risk
+                st.session_state["assess_originality"]= originality
+                st.session_state["assess_cite_check"] = cite_check
+                st.session_state["assess_cost"]       = st.session_state["last_cost"]
+                st.session_state["assessment_done"]   = True
                 st.rerun()
 
         if st.session_state.get("assessment_done"):
-            src_sim    = st.session_state["assess_src_sim"]
-            hist_sim   = st.session_state["assess_hist_sim"]
-            risk       = st.session_state["assess_risk"]
-            cite_check = st.session_state.get("assess_cite_check", {})
-            cost       = st.session_state["assess_cost"]
-            total      = get_total_cost()
+            src_sim     = st.session_state["assess_src_sim"]
+            hist_sim    = st.session_state["assess_hist_sim"]
+            risk        = st.session_state["assess_risk"]
+            originality = st.session_state.get("assess_originality", {"score": 0, "label": "N/A", "color": "grey"})
+            cite_check  = st.session_state.get("assess_cite_check", {})
+            cost        = st.session_state["assess_cost"]
+            total       = get_total_cost()
 
             risk_level = risk.get("risk_level", "Unknown")
             risk_score = risk.get("score", 0)
@@ -1781,6 +2761,12 @@ def page_write():
             for f in risk.get("flags", []):
                 flags_html += f'<span class="flag-pill">{f}</span> '
 
+            orig_score = originality.get("score", 0)
+            orig_label = originality.get("label", "N/A")
+            orig_color_name = originality.get("color", "grey")
+            orig_hex   = {"green": "#10b981", "orange": "#f59e0b", "red": "#ef4444", "grey": "#94a3b8"}.get(orig_color_name, "#94a3b8")
+            orig_bg    = {"green": "#022c22", "orange": "#2d1a00", "red": "#2d0000", "grey": "#1e293b"}.get(orig_color_name, "#1e293b")
+
             st.markdown(f"""
             <div class="assess-grid">
 
@@ -1788,14 +2774,14 @@ def page_write():
                 <div class="assess-card-title">Similarity vs Source Materials</div>
                 <div class="assess-score" style="color:{src_hex};">{src_pct}</div>
                 <div class="assess-label" style="background:{src_bg}; color:{src_hex};">{src_label}</div>
-                <div class="assess-desc">Measures how much the write-up overlaps with your uploaded references. A lower score indicates genuine synthesis rather than paraphrase.</div>
+                <div class="assess-desc">Measures semantic overlap between the write-up and uploaded references. Lower = more genuine synthesis rather than paraphrase.</div>
               </div>
 
               <div class="assess-card">
                 <div class="assess-card-title">Similarity vs Past Work</div>
                 <div class="assess-score" style="color:{hist_hex};">{hist_pct}</div>
                 <div class="assess-label" style="background:{hist_bg}; color:{hist_hex};">{hist_label}</div>
-                <div class="assess-desc">Compares this write-up against all your previous submissions. Catches recycled arguments across different assignments.</div>
+                <div class="assess-desc">Compares against all previous submissions in your history. Flags recycled arguments across different assignments.</div>
               </div>
 
               <div class="assess-card">
@@ -1807,12 +2793,20 @@ def page_write():
               </div>
 
               <div class="assess-card">
-                <div class="assess-card-title">Cost</div>
-                <div class="assess-score" style="color:#38bdf8;">${cost:.4f}</div>
-                <div class="assess-label" style="background:#0c2233; color:#38bdf8;">This generation</div>
-                <div class="assess-desc">Cumulative total across all sessions: <strong style="color:#e2e8f0;">${total:.4f} USD</strong></div>
+                <div class="assess-card-title">Originality Score</div>
+                <div class="assess-score" style="color:{orig_hex};">{orig_score}/100</div>
+                <div class="assess-label" style="background:{orig_bg}; color:{orig_hex};">{orig_label}</div>
+                <div class="assess-desc">Measures how far the write-up goes beyond its sources. Rewards synthesis across multiple references and novel argumentation.</div>
               </div>
 
+            </div>
+
+            <div class="cost-summary-bar">
+              <span class="cost-summary-label">Generation cost</span>
+              <span class="cost-summary-value">${cost:.4f}</span>
+              <span class="cost-summary-sep">·</span>
+              <span class="cost-summary-label">Cumulative total</span>
+              <span class="cost-summary-value">${total:.4f} USD</span>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1891,7 +2885,14 @@ def page_write():
 # ─────────────────────────────────────────────
 
 def page_dashboard():
-    st.markdown("## 📊 Dashboard")
+    st.markdown("""
+    <div class="page-header">
+        <div class="page-header-content">
+            <h1>Dashboard</h1>
+            <p>Usage analytics, cost tracking, and agent performance across all sessions</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     try:
         writings = supabase.table("writings").select("*").order("created_at", desc=True).execute().data
@@ -1937,7 +2938,14 @@ def page_dashboard():
 # ─────────────────────────────────────────────
 
 def page_history():
-    st.markdown("## 📚 History")
+    st.markdown("""
+    <div class="page-header">
+        <div class="page-header-content">
+            <h1>History</h1>
+            <p>All past write-ups with full text preview and re-download</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     try:
         writings = supabase.table("writings").select("*").order("created_at", desc=True).limit(50).execute().data
@@ -2024,8 +3032,6 @@ def main():
         page_dashboard()
     elif page == "History":
         page_history()
-    elif page == "Setup":
-        page_setup()
 
 if __name__ == "__main__":
     main()

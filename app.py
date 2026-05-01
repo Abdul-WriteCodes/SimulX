@@ -1378,25 +1378,14 @@ def export_docx(output_text: str, agent_name: str, discipline: str, structure: s
 def inject_css():
     st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
-
-    /* ─── Design tokens ───────────────────────────────────────────────── */
-    :root {
-        --gold:       #c9a84c;
-        --gold-dim:   #8a6f30;
-        --gold-glow:  rgba(201,168,76,0.15);
-        --gold-border:rgba(201,168,76,0.2);
-        --cream:      #f5f0e8;
-        --mist:       #8898aa;
-        --ghost:      #364152;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
     /* ── Base ─────────────────────────────────────────────────────────── */
     html, body, [class*="css"] {
-        font-family: 'DM Sans', -apple-system, sans-serif;
+        font-family: 'Inter', -apple-system, sans-serif;
     }
     .stApp {
-        background: #06080f;
+        background: #080c14;
     }
     section[data-testid="stSidebar"] {
         background: #0b0f1a !important;
@@ -1418,11 +1407,9 @@ def inject_css():
     }
     .sidebar-title {
         font-size: 1.05rem;
-        font-weight: 600;
+        font-weight: 700;
         color: #f1f5f9;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        font-family: 'DM Mono', monospace;
+        letter-spacing: -0.3px;
     }
     .sidebar-divider {
         height: 1px;
@@ -1450,9 +1437,9 @@ def inject_css():
     }
     .sidebar-cost-value {
         font-size: 1.4rem;
-        font-weight: 500;
-        color: #c4b5fd;
-        font-family: 'DM Mono', monospace;
+        font-weight: 700;
+        color: #38bdf8;
+        font-family: 'JetBrains Mono', monospace;
         letter-spacing: -0.5px;
     }
     .sidebar-cost-unit {
@@ -1517,10 +1504,10 @@ def inject_css():
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        padding: 2.5rem 3rem;
-        background: linear-gradient(145deg, #0c0e1a 0%, #090b16 100%);
-        border: 1px solid rgba(255,255,255,0.04);
-        border-radius: 4px;
+        padding: 2rem 2.5rem;
+        background: linear-gradient(135deg, #0f172a 0%, #1a1035 50%, #0f1f35 100%);
+        border: 1px solid rgba(99,102,241,0.2);
+        border-radius: 16px;
         margin-bottom: 2rem;
         position: relative;
         overflow: hidden;
@@ -1528,47 +1515,33 @@ def inject_css():
     .page-header::before {
         content: '';
         position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(196,181,253,0.2), transparent);
-    }
-    .page-header::after {
-        content: '';
-        position: absolute;
         top: -40px; right: -40px;
         width: 200px; height: 200px;
-        background: radial-gradient(circle, rgba(109,40,217,0.06) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
         pointer-events: none;
     }
     .page-header-content h1 {
-        font-size: 2rem;
-        font-weight: 300;
-        font-family: 'Cormorant Garamond', serif;
-        font-style: italic;
+        font-size: 1.6rem;
+        font-weight: 800;
         color: #f1f5f9;
         margin: 0 0 0.3rem;
-        letter-spacing: -0.3px;
+        letter-spacing: -0.5px;
     }
     .page-header-content p {
-        color: rgba(71,85,105,0.8);
+        color: #64748b;
         margin: 0;
-        font-size: 0.8rem;
-        letter-spacing: 0.02em;
-        font-weight: 300;
+        font-size: 0.88rem;
     }
     .page-header-badge {
-        background: rgba(139,92,246,0.08);
-        border: 1px solid rgba(196,181,253,0.15);
-        border-radius: 2px;
+        background: rgba(99,102,241,0.15);
+        border: 1px solid rgba(99,102,241,0.3);
+        border-radius: 999px;
         padding: 0.35rem 1rem;
-        font-size: 0.62rem;
-        font-weight: 500;
-        font-family: 'DM Mono', monospace;
-        color: rgba(196,181,253,0.55);
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #a5b4fc;
         white-space: nowrap;
         margin-top: 0.25rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
     }
 
     /* ── Section labels ───────────────────────────────────────────────── */
@@ -1585,7 +1558,7 @@ def inject_css():
         font-size: 0.8rem;
         color: #64748b;
         margin-bottom: 0.75rem;
-        font-family: 'DM Mono', monospace;
+        font-family: 'JetBrains Mono', monospace;
     }
 
     /* ── Dispatcher card ──────────────────────────────────────────────── */
@@ -1669,10 +1642,10 @@ def inject_css():
     }
     .assess-score {
         font-size: 2.4rem;
-        font-weight: 300;
+        font-weight: 800;
         letter-spacing: -2px;
         margin-bottom: 0.5rem;
-        font-family: 'Cormorant Garamond', serif;
+        font-family: 'JetBrains Mono', monospace;
         line-height: 1;
     }
     .assess-label {
@@ -1724,22 +1697,19 @@ def inject_css():
 
     /* ── Buttons ──────────────────────────────────────────────────────── */
     div[data-testid="stButton"] > button {
-        background: linear-gradient(135deg, #5b21b6 0%, #6d28d9 100%);
-        color: rgba(255,255,255,0.9);
+        background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 100%);
+        color: #fff;
         border: none;
-        border-radius: 3px;
+        border-radius: 10px;
         padding: 0.55rem 1.6rem;
-        font-weight: 400;
-        font-size: 0.82rem;
-        letter-spacing: 0.06em;
-        transition: all 0.25s;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 0 0 1px rgba(139,92,246,0.2);
-        text-transform: uppercase;
+        font-weight: 600;
+        font-size: 0.88rem;
+        transition: all 0.2s;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2), 0 0 0 1px rgba(99,102,241,0.3);
     }
     div[data-testid="stButton"] > button:hover {
         transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(109,40,217,0.25), 0 0 0 1px rgba(196,181,253,0.2);
-        background: linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%);
+        box-shadow: 0 4px 12px rgba(99,102,241,0.3), 0 0 0 1px rgba(99,102,241,0.4);
     }
     div[data-testid="stButton"] > button:active { transform: translateY(0); }
 
@@ -1754,22 +1724,21 @@ def inject_css():
     /* ── Inputs & text areas ──────────────────────────────────────────── */
     div[data-testid="stTextArea"] textarea,
     div[data-testid="stTextInput"] input {
-        background: #0a0c18 !important;
-        border: 1px solid rgba(255,255,255,0.07) !important;
-        border-radius: 3px !important;
+        background: #0d1424 !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        border-radius: 10px !important;
         color: #e2e8f0 !important;
         font-size: 0.88rem !important;
-        font-family: 'DM Sans', sans-serif !important;
         transition: border-color 0.2s !important;
     }
     div[data-testid="stTextArea"] textarea:focus,
     div[data-testid="stTextInput"] input:focus {
-        border-color: rgba(196,181,253,0.3) !important;
-        box-shadow: 0 0 0 3px rgba(139,92,246,0.07) !important;
+        border-color: rgba(99,102,241,0.5) !important;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.1) !important;
     }
     div[data-testid="stTextArea"] textarea::placeholder,
     div[data-testid="stTextInput"] input::placeholder {
-        color: #1e293b !important;
+        color: #334155 !important;
     }
     label[data-testid="stWidgetLabel"] > div > p {
         color: #94a3b8 !important;
@@ -1779,33 +1748,33 @@ def inject_css():
 
     /* ── Selectbox ────────────────────────────────────────────────────── */
     div[data-testid="stSelectbox"] > div > div {
-        background: #0a0c18 !important;
-        border: 1px solid rgba(255,255,255,0.07) !important;
-        border-radius: 3px !important;
+        background: #0d1424 !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        border-radius: 10px !important;
         color: #e2e8f0 !important;
     }
 
     /* ── Number input ─────────────────────────────────────────────────── */
     div[data-testid="stNumberInput"] input {
-        background: #0a0c18 !important;
-        border: 1px solid rgba(255,255,255,0.07) !important;
-        border-radius: 3px !important;
+        background: #0d1424 !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        border-radius: 10px !important;
         color: #e2e8f0 !important;
     }
 
     /* ── File uploader ────────────────────────────────────────────────── */
     div[data-testid="stFileUploader"] {
-        background: #0a0c18 !important;
-        border: 1px dashed rgba(196,181,253,0.15) !important;
-        border-radius: 3px !important;
+        background: #0d1424 !important;
+        border: 1px dashed rgba(99,102,241,0.25) !important;
+        border-radius: 12px !important;
     }
-    div[data-testid="stFileUploader"] label { color: #475569 !important; }
+    div[data-testid="stFileUploader"] label { color: #64748b !important; }
 
     /* ── Expander ─────────────────────────────────────────────────────── */
     div[data-testid="stExpander"] {
-        background: #0a0c18 !important;
-        border: 1px solid rgba(255,255,255,0.05) !important;
-        border-radius: 3px !important;
+        background: #0d1424 !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
+        border-radius: 12px !important;
         overflow: hidden;
     }
     div[data-testid="stExpander"] summary {
@@ -1817,9 +1786,9 @@ def inject_css():
 
     /* ── Metrics ──────────────────────────────────────────────────────── */
     div[data-testid="stMetric"] {
-        background: #0a0c18;
-        border: 1px solid rgba(255,255,255,0.05);
-        border-radius: 3px;
+        background: #0d1424;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 12px;
         padding: 1rem 1.25rem;
     }
     div[data-testid="stMetricLabel"] p { color: #64748b !important; font-size: 0.75rem !important; }
@@ -1835,8 +1804,8 @@ def inject_css():
     }
 
     /* ── Step headings ────────────────────────────────────────────────── */
-    h3 { color: #e2e8f0 !important; font-weight: 400 !important; font-family: 'Cormorant Garamond', serif !important; font-style: italic !important; letter-spacing: 0 !important; }
-    h2 { color: #f1f5f9 !important; font-weight: 300 !important; font-family: 'Cormorant Garamond', serif !important; font-style: italic !important; letter-spacing: -0.3px !important; }
+    h3 { color: #e2e8f0 !important; font-weight: 700 !important; letter-spacing: -0.3px !important; }
+    h2 { color: #f1f5f9 !important; font-weight: 800 !important; letter-spacing: -0.5px !important; }
 
     /* ── Caption ──────────────────────────────────────────────────────── */
     div[data-testid="stCaptionContainer"] p { color: #475569 !important; font-size: 0.8rem !important; }
@@ -1866,279 +1835,142 @@ def inject_css():
         justify-content: center;
     }
     .auth-card {
-        background: linear-gradient(160deg, #0d0f1e 0%, #110d1f 50%, #0a0f1c 100%);
-        border: 1px solid rgba(196,181,253,0.12);
-        border-radius: 4px;
-        padding: 3.5rem 3rem 2.5rem;
-        width: 380px;
+        background: #0d1424;
+        border: 1px solid rgba(99,102,241,0.2);
+        border-radius: 20px;
+        padding: 2.5rem;
+        width: 360px;
         text-align: center;
-        box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 60px rgba(139,92,246,0.06), 0 0 0 1px rgba(196,181,253,0.05);
-        position: relative;
-        overflow: hidden;
-    }
-    .auth-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 50%;
-        transform: translateX(-50%);
-        width: 1px;
-        height: 60px;
-        background: linear-gradient(to bottom, rgba(196,181,253,0.5), transparent);
-        pointer-events: none;
-    }
-    .auth-card::after {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent 0%, rgba(196,181,253,0.4) 30%, rgba(139,92,246,0.6) 50%, rgba(196,181,253,0.4) 70%, transparent 100%);
+        box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(99,102,241,0.1);
     }
     .auth-logo {
-        font-size: 1rem;
-        font-family: 'DM Mono', monospace;
-        letter-spacing: 0.25em;
-        color: rgba(196,181,253,0.4);
-        text-transform: uppercase;
-        margin-bottom: 2rem;
-        display: block;
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
     }
     .auth-title {
-        font-size: 3.2rem;
-        font-weight: 300;
-        font-family: 'Cormorant Garamond', serif;
-        font-style: italic;
-        color: #f8fafc;
-        margin-bottom: 0.4rem;
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #f1f5f9;
+        margin-bottom: 0.25rem;
         letter-spacing: -0.5px;
-        line-height: 1;
     }
     .auth-subtitle {
-        font-size: 0.72rem;
-        color: rgba(148,163,184,0.5);
-        margin-bottom: 3rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        font-weight: 400;
+        font-size: 0.82rem;
+        color: #475569;
+        margin-bottom: 2rem;
     }
 
     /* ── Hero ─────────────────────────────────────────────────────────── */
     .hero {
         position: relative;
         overflow: hidden;
-        background: linear-gradient(160deg, #06080f 0%, #0e0b1a 45%, #060d1a 100%);
-        border: 1px solid rgba(196,181,253,0.08);
-        border-radius: 4px;
-        padding: 5rem 4rem 4.5rem;
-        margin-bottom: 1.2rem;
+        background: linear-gradient(160deg, #080c14 0%, #0e1528 40%, #0a1220 100%);
+        border: 1px solid rgba(99,102,241,0.18);
+        border-radius: 20px;
+        padding: 4rem 3rem 3.5rem;
+        margin-bottom: 1.5rem;
         text-align: center;
-    }
-    .hero::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent 0%, rgba(196,181,253,0.35) 25%, rgba(139,92,246,0.55) 50%, rgba(196,181,253,0.35) 75%, transparent 100%);
-    }
-    .hero::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background-image:
-            radial-gradient(circle at 20% 50%, rgba(109,40,217,0.07) 0%, transparent 55%),
-            radial-gradient(circle at 80% 20%, rgba(14,165,233,0.05) 0%, transparent 50%),
-            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
-        pointer-events: none;
     }
     .hero-glow {
         position: absolute;
-        width: 500px; height: 500px;
+        width: 360px; height: 360px;
         border-radius: 50%;
-        filter: blur(110px);
+        filter: blur(80px);
         pointer-events: none;
-        opacity: 0.18;
+        opacity: 0.4;
     }
-    .hero-glow-left  { background: radial-gradient(circle, #6d28d9, transparent 70%); top: -150px; left: -150px; }
-    .hero-glow-right { background: radial-gradient(circle, #0ea5e9, transparent 70%); bottom: -150px; right: -150px; opacity: 0.12; }
+    .hero-glow-left  { background: radial-gradient(circle, #4f46e5, transparent 70%); top: -80px; left: -80px; }
+    .hero-glow-right { background: radial-gradient(circle, #0ea5e9, transparent 70%); bottom: -80px; right: -80px; }
     .hero-inner { position: relative; z-index: 1; }
     .hero-eyebrow {
-        font-size: 0.6rem;
-        font-weight: 500;
-        letter-spacing: 0.28em;
-        color: rgba(196,181,253,0.45);
-        margin-bottom: 1.8rem;
-        text-transform: uppercase;
-        font-family: 'DM Mono', monospace;
-    }
-    .hero-eyebrow span {
-        display: inline-block;
-        width: 24px;
-        height: 1px;
-        background: rgba(196,181,253,0.3);
-        vertical-align: middle;
-        margin: 0 0.75rem;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        color: #6366f1;
+        margin-bottom: 1.1rem;
     }
     .hero-title {
-        font-size: 3.8rem !important;
-        font-weight: 300 !important;
-        font-family: 'Cormorant Garamond', serif !important;
-        font-style: italic !important;
-        color: #f8fafc !important;
-        letter-spacing: -1px !important;
-        line-height: 1.1 !important;
-        margin: 0 0 0.15rem !important;
-    }
-    .hero-title-plain {
-        font-size: 3.8rem;
-        font-weight: 300;
-        font-family: 'Cormorant Garamond', serif;
-        font-style: normal;
-        color: rgba(248,250,252,0.55);
-        letter-spacing: -1px;
-        line-height: 1.1;
-        display: block;
-        margin-bottom: 2rem;
+        font-size: 2.6rem !important;
+        font-weight: 800 !important;
+        color: #f1f5f9 !important;
+        letter-spacing: -1.5px !important;
+        line-height: 1.15 !important;
+        margin: 0 0 1.1rem !important;
     }
     .hero-subtitle {
-        font-size: 0.88rem;
-        color: rgba(100,116,139,0.8);
-        max-width: 460px;
+        font-size: 1rem;
+        color: #64748b;
+        max-width: 540px;
         margin: 0 auto;
-        line-height: 1.85;
-        font-weight: 300;
-        letter-spacing: 0.01em;
-    }
-    .hero-divider {
-        width: 40px;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(196,181,253,0.4), transparent);
-        margin: 2rem auto 1.5rem;
+        line-height: 1.7;
     }
 
     /* ── Capability grid ──────────────────────────────────────────────── */
     .capability-grid {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
-        gap: 0.75rem;
-        margin-bottom: 1.2rem;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
     .cap-card {
-        background: linear-gradient(145deg, #0c0e1a 0%, #0a0c18 100%);
-        border: 1px solid rgba(255,255,255,0.045);
-        border-radius: 4px;
-        padding: 1.6rem 1.5rem 1.5rem;
-        transition: border-color 0.3s, transform 0.3s;
-        position: relative;
-        overflow: hidden;
-    }
-    .cap-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(196,181,253,0.15), transparent);
-        opacity: 0;
-        transition: opacity 0.3s;
+        background: #0d1424;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 14px;
+        padding: 1.4rem 1.5rem 1.25rem;
+        transition: border-color 0.2s, transform 0.2s;
     }
     .cap-card:hover {
-        border-color: rgba(196,181,253,0.14);
-        transform: translateY(-3px);
+        border-color: rgba(99,102,241,0.3);
+        transform: translateY(-2px);
     }
-    .cap-card:hover::before { opacity: 1; }
-    .cap-num {
-        font-size: 0.6rem;
-        font-family: 'DM Mono', monospace;
-        color: rgba(196,181,253,0.25);
-        letter-spacing: 0.15em;
-        margin-bottom: 1.2rem;
-        display: block;
-    }
-    .cap-icon  { font-size: 1.3rem; margin-bottom: 0.75rem; opacity: 0.8; }
-    .cap-title {
-        font-size: 0.88rem;
-        font-weight: 500;
-        color: #e2e8f0;
-        margin-bottom: 0.2rem;
-        letter-spacing: 0.01em;
-    }
-    .cap-agents{
-        font-size: 0.68rem;
-        color: rgba(196,181,253,0.35);
-        margin-bottom: 1rem;
-        font-family: 'DM Mono', monospace;
-        letter-spacing: 0.06em;
-    }
+    .cap-icon  { font-size: 1.6rem; margin-bottom: 0.6rem; }
+    .cap-title { font-size: 0.95rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.2rem; }
+    .cap-agents{ font-size: 0.75rem; color: #475569; margin-bottom: 0.75rem; font-family: 'JetBrains Mono', monospace; }
     .cap-tags  { display: flex; flex-wrap: wrap; gap: 0.3rem; }
     .cap-tag   {
-        background: rgba(139,92,246,0.06);
-        border: 1px solid rgba(139,92,246,0.14);
-        color: rgba(196,181,253,0.6);
-        font-size: 0.62rem;
-        font-weight: 500;
-        padding: 0.18rem 0.6rem;
-        border-radius: 2px;
-        letter-spacing: 0.03em;
+        background: rgba(99,102,241,0.08);
+        border: 1px solid rgba(99,102,241,0.18);
+        color: #818cf8;
+        font-size: 0.68rem;
+        font-weight: 600;
+        padding: 0.18rem 0.55rem;
+        border-radius: 999px;
     }
 
     /* ── How it works ─────────────────────────────────────────────────── */
     .how-it-works {
-        background: linear-gradient(145deg, #0c0e1a 0%, #090b16 100%);
-        border: 1px solid rgba(255,255,255,0.04);
-        border-radius: 4px;
-        padding: 2rem 2.5rem;
+        background: #0d1424;
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 14px;
+        padding: 1.5rem 2rem;
         margin-bottom: 0.5rem;
-        position: relative;
-    }
-    .how-it-works::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(196,181,253,0.12), transparent);
     }
     .hiw-label {
-        font-size: 0.55rem;
-        font-weight: 500;
-        letter-spacing: 0.22em;
-        color: rgba(196,181,253,0.25);
-        margin-bottom: 1.5rem;
-        font-family: 'DM Mono', monospace;
-        text-transform: uppercase;
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        color: #334155;
+        margin-bottom: 1.1rem;
     }
     .hiw-steps {
         display: flex;
-        align-items: flex-start;
-        gap: 0;
-        flex-wrap: nowrap;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
     }
-    .hiw-step { display: flex; align-items: flex-start; gap: 0.75rem; flex: 1; }
+    .hiw-step { display: flex; align-items: flex-start; gap: 0.65rem; flex: 1; min-width: 140px; }
     .hiw-num  {
-        font-size: 0.7rem;
-        font-weight: 400;
-        color: rgba(196,181,253,0.2);
-        font-family: 'DM Mono', monospace;
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: rgba(99,102,241,0.35);
+        font-family: 'JetBrains Mono', monospace;
         line-height: 1;
-        padding-top: 0.1rem;
-        flex-shrink: 0;
-        letter-spacing: 0.05em;
-    }
-    .hiw-text strong {
-        display: block;
-        font-size: 0.8rem;
-        color: rgba(226,232,240,0.85);
-        font-weight: 500;
-        margin-bottom: 0.3rem;
-        font-family: 'DM Sans', sans-serif;
-    }
-    .hiw-text span   { font-size: 0.72rem; color: rgba(71,85,105,0.9); line-height: 1.5; }
-    .hiw-arrow {
-        color: rgba(196,181,253,0.1);
-        font-size: 0.8rem;
-        flex-shrink: 0;
-        padding: 0 0.75rem;
         padding-top: 0.05rem;
-        align-self: flex-start;
-        margin-top: 0.1rem;
+        flex-shrink: 0;
     }
+    .hiw-text strong { display: block; font-size: 0.82rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.2rem; }
+    .hiw-text span   { font-size: 0.75rem; color: #475569; line-height: 1.4; }
+    .hiw-arrow { color: #1e293b; font-size: 1.1rem; flex-shrink: 0; }
 
     /* ── Step headers ─────────────────────────────────────────────────── */
     .step-header {
@@ -2148,27 +1980,19 @@ def inject_css():
         margin: 0.25rem 0 0.85rem;
     }
     .step-num {
-        font-size: 0.6rem;
-        font-weight: 400;
-        font-family: 'DM Mono', monospace;
-        background: rgba(139,92,246,0.07);
-        border: 1px solid rgba(196,181,253,0.15);
-        color: rgba(196,181,253,0.5);
-        padding: 0.28rem 0.65rem;
-        border-radius: 2px;
-        letter-spacing: 0.1em;
+        font-size: 0.7rem;
+        font-weight: 800;
+        font-family: 'JetBrains Mono', monospace;
+        background: rgba(99,102,241,0.12);
+        border: 1px solid rgba(99,102,241,0.25);
+        color: #818cf8;
+        padding: 0.25rem 0.55rem;
+        border-radius: 6px;
+        letter-spacing: 0.05em;
         flex-shrink: 0;
     }
-    .step-title {
-        font-size: 1rem;
-        font-weight: 400;
-        font-family: 'Cormorant Garamond', serif;
-        font-style: italic;
-        color: #e2e8f0;
-        margin-bottom: 0.1rem;
-        letter-spacing: 0.01em;
-    }
-    .step-hint  { font-size: 0.75rem; color: #334155; font-weight: 300; }
+    .step-title { font-size: 1.05rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.1rem; }
+    .step-hint  { font-size: 0.78rem; color: #475569; }
 
     /* ── Inline hints ─────────────────────────────────────────────────── */
     .inline-hint {
@@ -2202,8 +2026,8 @@ def inject_css():
         text-align: center;
         margin-top: 0.5rem;
     }
-    .wcw-val   { font-size: 2rem; font-weight: 300; color: #c4b5fd; font-family: 'Cormorant Garamond', serif; letter-spacing: -1px; }
-    .wcw-label { font-size: 0.75rem; font-weight: 400; color: #64748b; margin-top: 0.1rem; }
+    .wcw-val   { font-size: 2rem; font-weight: 800; color: #818cf8; font-family: 'JetBrains Mono', monospace; letter-spacing: -1px; }
+    .wcw-label { font-size: 0.75rem; font-weight: 600; color: #64748b; margin-top: 0.1rem; }
     .wcw-sub   { font-size: 0.67rem; color: #334155; margin-top: 0.2rem; }
 
     /* ── Upload feedback panel ────────────────────────────────────────── */
@@ -2232,7 +2056,7 @@ def inject_css():
         gap: 0.5rem;
         margin-bottom: 0.65rem;
     }
-    .upload-count { font-size: 1.6rem; font-weight: 300; font-family: 'Cormorant Garamond', serif; line-height: 1; }
+    .upload-count { font-size: 1.6rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; }
     .upload-count-label { font-size: 0.75rem; color: #64748b; font-weight: 500; flex: 1; }
     .upload-quality-badge {
         font-size: 0.62rem; font-weight: 700;
@@ -2278,9 +2102,9 @@ def auth_gate():
     with col2:
         st.markdown("""
         <div class="auth-card">
-            <span class="auth-logo">A G E N T · 4 3</span>
-            <div class="auth-title">Académie</div>
-            <div class="auth-subtitle">AI Writing System · Restricted Access</div>
+            <div class="auth-logo">⬡</div>
+            <div class="auth-title">Agent43</div>
+            <div class="auth-subtitle">AI-Powered Academic Writing · Restricted Access</div>
         </div>
         """, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
@@ -2302,7 +2126,7 @@ def render_sidebar():
     with st.sidebar:
         st.markdown("""
         <div class="sidebar-brand">
-            <span class="sidebar-logo">◈</span>
+            <span class="sidebar-logo">⬡</span>
             <span class="sidebar-title">Agent43</span>
         </div>
         """, unsafe_allow_html=True)
@@ -2428,10 +2252,8 @@ def page_write():
             <div class="hero-glow hero-glow-left"></div>
             <div class="hero-glow hero-glow-right"></div>
             <div class="hero-inner">
-                <div class="hero-eyebrow"><span></span>AI-Powered Academic Writing System<span></span></div>
-                <h1 class="hero-title">Write with the precision</h1>
-                <span class="hero-title-plain">of a first-class scholar.</span>
-                <div class="hero-divider"></div>
+                <div class="hero-eyebrow">AI-POWERED ACADEMIC WRITING SYSTEM</div>
+                <h1 class="hero-title">Write with the precision<br>of a first-class scholar.</h1>
                 <p class="hero-subtitle">
                     Nine specialist agents. Three disciplines. Citations sourced exclusively
                     from your uploaded references — zero hallucinations, every time.
@@ -2443,7 +2265,6 @@ def page_write():
         st.markdown("""
         <div class="capability-grid">
             <div class="cap-card">
-                <span class="cap-num">001</span>
                 <div class="cap-icon">🌐</div>
                 <div class="cap-title">International Business</div>
                 <div class="cap-agents">Alpha · Beta · Gamma</div>
@@ -2454,7 +2275,6 @@ def page_write():
                 </div>
             </div>
             <div class="cap-card">
-                <span class="cap-num">002</span>
                 <div class="cap-icon">📣</div>
                 <div class="cap-title">International Marketing</div>
                 <div class="cap-agents">Delta · Epsilon · Zeta</div>
@@ -2465,7 +2285,6 @@ def page_write():
                 </div>
             </div>
             <div class="cap-card">
-                <span class="cap-num">003</span>
                 <div class="cap-icon">🏥</div>
                 <div class="cap-title">Health &amp; Social Care</div>
                 <div class="cap-agents">Eta · Theta · Iota</div>
@@ -2480,7 +2299,7 @@ def page_write():
 
         st.markdown("""
         <div class="how-it-works">
-            <div class="hiw-label">— How it works —</div>
+            <div class="hiw-label">HOW IT WORKS</div>
             <div class="hiw-steps">
                 <div class="hiw-step">
                     <div class="hiw-num">01</div>
@@ -2489,7 +2308,7 @@ def page_write():
                         <span>Drop PDFs or Word docs in the sidebar panel</span>
                     </div>
                 </div>
-                <div class="hiw-arrow">›</div>
+                <div class="hiw-arrow">→</div>
                 <div class="hiw-step">
                     <div class="hiw-num">02</div>
                     <div class="hiw-text">
@@ -2497,7 +2316,7 @@ def page_write():
                         <span>Paste your assessment question below</span>
                     </div>
                 </div>
-                <div class="hiw-arrow">›</div>
+                <div class="hiw-arrow">→</div>
                 <div class="hiw-step">
                     <div class="hiw-num">03</div>
                     <div class="hiw-text">
@@ -2505,7 +2324,7 @@ def page_write():
                         <span>Dispatcher selects the best specialist</span>
                     </div>
                 </div>
-                <div class="hiw-arrow">›</div>
+                <div class="hiw-arrow">→</div>
                 <div class="hiw-step">
                     <div class="hiw-num">04</div>
                     <div class="hiw-text">
@@ -2888,7 +2707,7 @@ def page_dashboard():
     st.markdown("""
     <div class="page-header">
         <div class="page-header-content">
-            <h1>Dashboard</h1>
+            <h1>📊 Dashboard</h1>
             <p>Usage analytics, cost tracking, and agent performance across all sessions</p>
         </div>
     </div>
@@ -2941,7 +2760,7 @@ def page_history():
     st.markdown("""
     <div class="page-header">
         <div class="page-header-content">
-            <h1>History</h1>
+            <h1>📚 History</h1>
             <p>All past write-ups with full text preview and re-download</p>
         </div>
     </div>
