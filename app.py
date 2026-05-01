@@ -2098,24 +2098,301 @@ def auth_gate():
     if st.session_state.get("authenticated"):
         return True
 
-    col1, col2, col3 = st.columns([1.5, 1, 1.5])
-    with col2:
-        st.markdown("""
-        <div class="auth-card">
-            <div class="auth-logo">⬡</div>
-            <div class="auth-title">Agent43</div>
-            <div class="auth-subtitle">AI-Powered Academic Writing · Restricted Access</div>
+    # ── Inject landing page styles ──────────────────────────────────────
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+
+    /* Hide Streamlit chrome */
+    header[data-testid="stHeader"]           { display: none !important; }
+    section[data-testid="stSidebar"]         { display: none !important; }
+    footer                                   { display: none !important; }
+    div[data-testid="stDecoration"]          { display: none !important; }
+    div[data-testid="stStatusWidget"]        { display: none !important; }
+    #MainMenu                                { display: none !important; }
+    .stApp { background: #05070d !important; }
+
+    /* Remove default block padding */
+    .block-container {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        max-width: 100% !important;
+    }
+
+    /* Landing wrapper */
+    .lp {
+        background: #05070d;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        overflow-x: hidden;
+        font-family: 'JetBrains Mono', monospace;
+        padding-bottom: 2rem;
+    }
+    /* Scanlines */
+    .lp::before {
+        content: '';
+        position: fixed; inset: 0; z-index: 0; pointer-events: none;
+        background-image: repeating-linear-gradient(
+            0deg, transparent, transparent 2px,
+            rgba(0,0,0,0.055) 2px, rgba(0,0,0,0.055) 4px
+        );
+    }
+    /* Glows */
+    .lp-g1 {
+        position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+        width: 560px; height: 560px; top: -200px; left: 50%; transform: translateX(-50%);
+        background: radial-gradient(circle, rgba(99,102,241,0.13) 0%, transparent 70%);
+        filter: blur(90px);
+    }
+    .lp-g2 {
+        position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+        width: 300px; height: 300px; top: 35%; right: -80px;
+        background: radial-gradient(circle, rgba(236,72,153,0.08) 0%, transparent 70%);
+        filter: blur(80px);
+    }
+    .lp-g3 {
+        position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+        width: 260px; height: 260px; top: 45%; left: -60px;
+        background: radial-gradient(circle, rgba(6,182,212,0.07) 0%, transparent 70%);
+        filter: blur(80px);
+    }
+    /* Grid floor */
+    .lp-gf {
+        position: fixed; bottom: 0; left: 0; right: 0; height: 160px;
+        pointer-events: none; z-index: 0;
+        background:
+            linear-gradient(to top, #05070d 0%, transparent 100%),
+            repeating-linear-gradient(90deg, rgba(99,102,241,0.05) 0, rgba(99,102,241,0.05) 1px, transparent 1px, transparent 52px),
+            repeating-linear-gradient(0deg,  rgba(99,102,241,0.05) 0, rgba(99,102,241,0.05) 1px, transparent 1px, transparent 52px);
+    }
+    /* All content above fixed layers */
+    .lp-inner {
+        position: relative; z-index: 1;
+        width: 100%; display: flex; flex-direction: column; align-items: center;
+    }
+    /* Top strip */
+    .lp-strip {
+        width: 100%; display: flex; justify-content: space-between;
+        padding: .7rem 1.5rem;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .lp-sl { font-size:.54rem; letter-spacing:.2em; text-transform:uppercase; color:rgba(99,102,241,.6); }
+    .lp-sr { font-size:.54rem; letter-spacing:.2em; text-transform:uppercase; color:rgba(255,255,255,.1); }
+    /* Mascot container */
+    .lp-mascot {
+        width: 100%; max-width: 680px; padding: 0 1rem; margin-top: .4rem;
+    }
+    .lp-mascot svg {
+        width: 100%; height: auto; overflow: visible;
+        filter: drop-shadow(0 0 40px rgba(99,102,241,.2)) drop-shadow(0 0 70px rgba(236,72,153,.08));
+    }
+    /* Title */
+    .lp-title { text-align: center; padding: 0 1rem; margin-top: -.4rem; }
+    .lp-title h1 {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: clamp(1.9rem, 7vw, 3.3rem); font-weight: 800;
+        color: #f1f5f9; letter-spacing: -.02em; line-height: 1; margin-bottom: .25rem;
+    }
+    .lp-o { color: transparent; -webkit-text-stroke: 1.5px rgba(99,102,241,.75); }
+    .lp-sub { font-size:.54rem; letter-spacing:.22em; color:rgba(148,163,184,.35); text-transform:uppercase; margin-bottom:.9rem; font-family:'JetBrains Mono',monospace; }
+    /* Pills */
+    .lp-pills { display:flex; gap:.35rem; justify-content:center; flex-wrap:wrap; padding:0 1rem .7rem; }
+    .lp-pill {
+        background:rgba(255,255,255,.022); border:1px solid rgba(255,255,255,.055);
+        border-radius:2px; padding:.22rem .7rem;
+        font-size:.5rem; letter-spacing:.1em; text-transform:uppercase;
+        color:rgba(148,163,184,.36); font-family:'JetBrains Mono',monospace;
+    }
+    .lp-pill.on { background:rgba(99,102,241,.1); border-color:rgba(99,102,241,.3); color:rgba(165,180,252,.85); }
+    /* Auth dividers */
+    .lp-hr {
+        width: min(320px, 88%); height: 1px; margin: .1rem 0 .85rem;
+        background: linear-gradient(90deg, transparent, rgba(99,102,241,.4), rgba(165,180,252,.5), rgba(99,102,241,.4), transparent);
+    }
+    .lp-eyebrow {
+        font-size:.5rem; letter-spacing:.26em; text-transform:uppercase;
+        color:rgba(165,180,252,.32); margin-bottom:.7rem; text-align:center;
+        font-family:'JetBrains Mono',monospace;
+    }
+
+    /* ── Style the Streamlit widgets to look native ─────────────────── */
+    /* Constrain widget column */
+    .auth-widgets {
+        width: min(320px, 88%);
+        display: flex; flex-direction: column; gap: 0;
+    }
+    /* Password input */
+    div[data-testid="stTextInput"] {
+        width: min(320px, 88%) !important;
+        margin: 0 auto .5rem !important;
+    }
+    div[data-testid="stTextInput"] label { display: none !important; }
+    div[data-testid="stTextInput"] input {
+        background: rgba(10,12,24,.95) !important;
+        border: 1px solid rgba(99,102,241,.28) !important;
+        border-radius: 3px !important;
+        color: #e2e8f0 !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: .78rem !important;
+        letter-spacing: .06em !important;
+        padding: .65rem 1rem .65rem 1.2rem !important;
+        caret-color: #a78bfa !important;
+        box-shadow: none !important;
+    }
+    div[data-testid="stTextInput"] input:focus {
+        border-color: rgba(99,102,241,.6) !important;
+        box-shadow: 0 0 0 3px rgba(99,102,241,.1) !important;
+    }
+    div[data-testid="stTextInput"] input::placeholder { color: rgba(71,85,105,.55) !important; }
+    /* Submit button */
+    div[data-testid="stButton"] {
+        width: min(320px, 88%) !important;
+        margin: 0 auto !important;
+    }
+    div[data-testid="stButton"] > button {
+        width: 100% !important;
+        background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%) !important;
+        border: none !important;
+        border-radius: 3px !important;
+        color: rgba(255,255,255,.92) !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: .68rem !important;
+        font-weight: 700 !important;
+        letter-spacing: .18em !important;
+        text-transform: uppercase !important;
+        padding: .65rem 1rem !important;
+        box-shadow: 0 0 18px rgba(99,102,241,.22), 0 0 0 1px rgba(99,102,241,.28) !important;
+        transition: all .2s !important;
+    }
+    div[data-testid="stButton"] > button:hover {
+        box-shadow: 0 4px 20px rgba(99,102,241,.35), 0 0 0 1px rgba(165,180,252,.3) !important;
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+    }
+    /* Error message */
+    div[data-testid="stAlert"] {
+        background: rgba(239,68,68,.08) !important;
+        border: 1px solid rgba(239,68,68,.25) !important;
+        border-radius: 3px !important;
+        width: min(320px, 88%) !important;
+        margin: .4rem auto 0 !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: .62rem !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # ── Render the visual art (mascot + title + pills) ──────────────────
+    st.markdown("""
+    <div class="lp">
+      <div class="lp-g1"></div><div class="lp-g2"></div><div class="lp-g3"></div>
+      <div class="lp-gf"></div>
+      <div class="lp-inner">
+
+        <div class="lp-strip">
+          <span class="lp-sl">Agent43 &middot; System v2.0</span>
+          <span class="lp-sr">AI &middot; Academic &middot; Engine</span>
         </div>
-        """, unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
-        pwd = st.text_input("Password", type="password", label_visibility="collapsed",
-                            placeholder="Enter access password...")
-        if st.button("Enter", use_container_width=True):
+
+        <div class="lp-mascot">
+        <svg viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="lpgv" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="lpgc" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="lpgp" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="lpgs" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="20"/></filter>
+          <linearGradient id="lpbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e1b4b"/><stop offset="100%" stop-color="#0f0c24"/></linearGradient>
+          <linearGradient id="lphg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2d2a5e"/><stop offset="100%" stop-color="#1a1740"/></linearGradient>
+          <linearGradient id="lpsg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0e7490"/><stop offset="100%" stop-color="#0c4a6e"/></linearGradient>
+          <linearGradient id="lpalg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#312e81"/><stop offset="100%" stop-color="#1e1b4b"/></linearGradient>
+          <linearGradient id="lparg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1e1b4b"/><stop offset="100%" stop-color="#312e81"/></linearGradient>
+          <linearGradient id="lpspg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#c026d3"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient>
+          <radialGradient id="lpspb" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#f0abfc" stop-opacity="0.9"/><stop offset="50%" stop-color="#c026d3" stop-opacity="0.5"/><stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/></radialGradient>
+          <radialGradient id="lpelg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#a5f3fc"/><stop offset="60%" stop-color="#06b6d4" stop-opacity="0.8"/><stop offset="100%" stop-color="#0891b2" stop-opacity="0"/></radialGradient>
+          <radialGradient id="lperg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#f0abfc"/><stop offset="60%" stop-color="#e879f9" stop-opacity="0.8"/><stop offset="100%" stop-color="#a21caf" stop-opacity="0"/></radialGradient>
+        </defs>
+        <g opacity="0.15" filter="url(#lpgp)"><text x="100" y="420" font-family="Arial Black,sans-serif" font-size="310" font-weight="900" fill="none" stroke="#c026d3" stroke-width="5" stroke-linejoin="round">43</text></g>
+        <g opacity="0.05"><text x="106" y="426" font-family="Arial Black,sans-serif" font-size="310" font-weight="900" fill="none" stroke="#06b6d4" stroke-width="3" stroke-linejoin="round">43</text></g>
+        <g opacity="0.22" filter="url(#lpgv)"><circle cx="168" cy="148" r="4" fill="#a78bfa"/><circle cx="153" cy="166" r="2.5" fill="#c4b5fd"/><circle cx="184" cy="160" r="3" fill="#818cf8"/><circle cx="143" cy="183" r="2" fill="#a78bfa"/><circle cx="198" cy="143" r="2" fill="#c4b5fd"/></g>
+        <ellipse cx="450" cy="492" rx="220" ry="16" fill="rgba(99,102,241,0.10)" filter="url(#lpgs)"/>
+        <rect x="368" y="418" width="58" height="65" rx="6" fill="url(#lpbg)" stroke="#4f46e5" stroke-width="1.5"/><rect x="375" y="421" width="44" height="6" rx="3" fill="rgba(99,102,241,0.26)"/><rect x="365" y="458" width="64" height="12" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/><rect x="357" y="479" width="76" height="18" rx="7" fill="#0f0c24" stroke="#4f46e5" stroke-width="1.5"/>
+        <rect x="474" y="418" width="58" height="65" rx="6" fill="url(#lpbg)" stroke="#4f46e5" stroke-width="1.5"/><rect x="481" y="421" width="44" height="6" rx="3" fill="rgba(99,102,241,0.26)"/><rect x="471" y="458" width="64" height="12" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/><rect x="468" y="479" width="76" height="18" rx="7" fill="#0f0c24" stroke="#4f46e5" stroke-width="1.5"/>
+        <rect x="330" y="238" width="240" height="190" rx="18" fill="url(#lpbg)" stroke="#4f46e5" stroke-width="2"/><rect x="340" y="250" width="220" height="5" rx="2" fill="rgba(99,102,241,0.2)"/>
+        <rect x="355" y="268" width="190" height="106" rx="10" fill="url(#lpsg)" stroke="#06b6d4" stroke-width="1.5" opacity="0.92"/>
+        <text x="365" y="287" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.85)">analyzing_brief(context)...</text>
+        <text x="365" y="299" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.6)">semantic_retrieval &#8594; OK</text>
+        <text x="365" y="311" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.75)">agent_dispatch: ALPHA</text>
+        <text x="365" y="323" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.5)">citation_index: 14 sources</text>
+        <text x="365" y="335" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.7)">writing &#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9617;&#9617;</text>
+        <text x="365" y="347" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.45)">originality_score: 91%</text>
+        <text x="365" y="359" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.6)">export &#8594; .docx &#10003;</text>
+        <rect x="365" y="365" width="6" height="8" rx="1" fill="#a5f3fc" opacity="0.9"/>
+        <circle cx="345" cy="264" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/><circle cx="555" cy="264" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/><circle cx="345" cy="418" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/><circle cx="555" cy="418" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+        <rect x="360" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/><rect x="384" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/><rect x="408" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/><rect x="432" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/><rect x="456" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/><rect x="480" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/><rect x="504" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+        <rect x="360" y="413" width="162" height="3" rx="1.5" fill="rgba(99,102,241,0.42)" filter="url(#lpgv)"/>
+        <circle cx="330" cy="260" r="22" fill="#1e1b4b" stroke="#6366f1" stroke-width="2"/><circle cx="330" cy="260" r="12" fill="#312e81" stroke="#818cf8" stroke-width="1.5"/><circle cx="330" cy="260" r="5" fill="#a78bfa"/>
+        <circle cx="570" cy="260" r="22" fill="#1e1b4b" stroke="#6366f1" stroke-width="2"/><circle cx="570" cy="260" r="12" fill="#312e81" stroke="#818cf8" stroke-width="1.5"/><circle cx="570" cy="260" r="5" fill="#a78bfa"/>
+        <g transform="rotate(-38,308,260)"><rect x="240" y="244" width="72" height="34" rx="12" fill="url(#lpalg)" stroke="#4f46e5" stroke-width="1.5"/><circle cx="252" cy="261" r="13" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/><circle cx="252" cy="261" r="7" fill="#312e81" stroke="#818cf8" stroke-width="1"/><rect x="178" y="246" width="78" height="28" rx="10" fill="url(#lpalg)" stroke="#4f46e5" stroke-width="1.5"/><circle cx="190" cy="260" r="11" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/><rect x="148" y="246" width="46" height="30" rx="8" fill="#312e81" stroke="#6366f1" stroke-width="1.5"/><line x1="156" y1="254" x2="156" y2="269" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/><line x1="164" y1="252" x2="164" y2="271" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/><line x1="172" y1="252" x2="172" y2="271" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/><line x1="180" y1="254" x2="180" y2="269" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/></g>
+        <rect x="90" y="82" width="34" height="80" rx="10" fill="url(#lpspg)" stroke="#c026d3" stroke-width="1.5" filter="url(#lpgp)"/><rect x="90" y="107" width="34" height="28" fill="rgba(240,171,252,0.18)"/><text x="107" y="126" font-family="Arial Black,sans-serif" font-size="9" font-weight="900" fill="white" text-anchor="middle" opacity="0.9">43</text><rect x="95" y="74" width="24" height="12" rx="5" fill="#e879f9" stroke="#f0abfc" stroke-width="1"/><rect x="107" y="66" width="8" height="12" rx="3" fill="#f5d0fe"/>
+        <g filter="url(#lpgp)" opacity="0.88"><ellipse cx="93" cy="54" rx="28" ry="20" fill="url(#lpspb)" opacity="0.72"/><ellipse cx="76" cy="40" rx="18" ry="13" fill="rgba(192,38,211,0.5)"/><ellipse cx="113" cy="42" rx="15" ry="10" fill="rgba(124,58,237,0.5)"/><circle cx="58" cy="34" r="3.5" fill="#f0abfc" opacity="0.7"/><circle cx="70" cy="24" r="2.5" fill="#e879f9" opacity="0.6"/><circle cx="83" cy="18" r="2" fill="#c026d3" opacity="0.5"/><circle cx="98" cy="20" r="3" fill="#a78bfa" opacity="0.6"/><circle cx="113" cy="26" r="2" fill="#f0abfc" opacity="0.5"/></g>
+        <g filter="url(#lpgp)" opacity="0.9"><text x="150" y="48" font-family="Arial Black,sans-serif" font-size="36" font-weight="900" fill="none" stroke="#c026d3" stroke-width="3.5" stroke-linejoin="round" transform="rotate(-7,150,48)">AGENT</text><text x="152" y="48" font-family="Arial Black,sans-serif" font-size="36" font-weight="900" fill="rgba(192,38,211,0.32)" transform="rotate(-7,150,48)">AGENT</text></g>
+        <g transform="rotate(18,592,260)"><rect x="590" y="244" width="72" height="34" rx="12" fill="url(#lparg)" stroke="#4f46e5" stroke-width="1.5"/><circle cx="648" cy="261" r="13" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/><circle cx="648" cy="261" r="7" fill="#312e81" stroke="#818cf8" stroke-width="1"/><rect x="644" y="246" width="78" height="28" rx="10" fill="url(#lparg)" stroke="#4f46e5" stroke-width="1.5"/><circle cx="710" cy="260" r="11" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/><rect x="706" y="244" width="46" height="32" rx="8" fill="#312e81" stroke="#6366f1" stroke-width="1.5"/><line x1="714" y1="252" x2="714" y2="269" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/><line x1="722" y1="250" x2="722" y2="271" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/><line x1="730" y1="250" x2="730" y2="271" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/><line x1="738" y1="252" x2="738" y2="269" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/></g>
+        <rect x="414" y="200" width="72" height="42" rx="6" fill="#1a1740" stroke="#4f46e5" stroke-width="1.5"/><rect x="414" y="209" width="72" height="5" rx="2" fill="rgba(99,102,241,0.26)"/><rect x="414" y="220" width="72" height="5" rx="2" fill="rgba(99,102,241,0.20)"/><rect x="414" y="231" width="72" height="5" rx="2" fill="rgba(99,102,241,0.14)"/>
+        <rect x="340" y="62" width="220" height="145" rx="22" fill="url(#lphg)" stroke="#6366f1" stroke-width="2.5"/><rect x="350" y="72" width="200" height="6" rx="3" fill="rgba(99,102,241,0.26)"/>
+        <rect x="380" y="40" width="8" height="28" rx="4" fill="#4f46e5" stroke="#818cf8" stroke-width="1"/><circle cx="384" cy="34" r="9" fill="#312e81" stroke="#818cf8" stroke-width="1.5" filter="url(#lpgv)"/><circle cx="384" cy="34" r="5" fill="#a78bfa" filter="url(#lpgv)"/>
+        <rect x="512" y="40" width="8" height="28" rx="4" fill="#4f46e5" stroke="#818cf8" stroke-width="1"/><circle cx="516" cy="34" r="9" fill="#312e81" stroke="#818cf8" stroke-width="1.5" filter="url(#lpgv)"/><circle cx="516" cy="34" r="5" fill="#a78bfa" filter="url(#lpgv)"/>
+        <circle cx="345" cy="102" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/><circle cx="555" cy="102" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/><circle cx="345" cy="168" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/><circle cx="555" cy="168" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+        <rect x="358" y="82" width="184" height="112" rx="14" fill="#0a0e1c" stroke="#4f46e5" stroke-width="1.5"/>
+        <rect x="375" y="98" width="64" height="42" rx="10" fill="#0e1a2e" stroke="#06b6d4" stroke-width="2"/><rect x="378" y="101" width="58" height="36" rx="8" fill="url(#lpelg)" opacity="0.13"/><circle cx="407" cy="119" r="14" fill="#0891b2" filter="url(#lpgc)"/><circle cx="407" cy="119" r="9" fill="#06b6d4"/><circle cx="407" cy="119" r="5" fill="#a5f3fc"/><circle cx="412" cy="114" r="2.5" fill="white" opacity="0.9"/><rect x="376" y="117" width="62" height="3" rx="1.5" fill="rgba(6,182,212,0.36)"/>
+        <rect x="461" y="98" width="64" height="42" rx="10" fill="#1a0e2e" stroke="#e879f9" stroke-width="2"/><rect x="464" y="101" width="58" height="36" rx="8" fill="url(#lperg)" opacity="0.13"/><circle cx="493" cy="119" r="14" fill="#a21caf" filter="url(#lpgp)"/><circle cx="493" cy="119" r="9" fill="#e879f9"/><circle cx="493" cy="119" r="5" fill="#f0abfc"/><circle cx="498" cy="114" r="2.5" fill="white" opacity="0.9"/><rect x="462" y="117" width="62" height="3" rx="1.5" fill="rgba(232,121,249,0.36)"/>
+        <rect x="375" y="158" width="150" height="26" rx="8" fill="#07091a" stroke="#4f46e5" stroke-width="1.5"/><rect x="382" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/><rect x="397" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/><rect x="412" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/><rect x="427" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/><rect x="442" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/><rect x="457" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/><rect x="472" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/><rect x="487" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/><rect x="502" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
+        <rect x="375" y="182" width="150" height="3" rx="1.5" fill="rgba(99,102,241,0.48)" filter="url(#lpgv)"/>
+        <g opacity="0.5" transform="rotate(12,678,120)" filter="url(#lpgv)"><text x="618" y="137" font-family="Arial Black,sans-serif" font-size="22" font-weight="900" fill="none" stroke="#818cf8" stroke-width="2.5" stroke-linejoin="round">WRITE</text><text x="620" y="137" font-family="Arial Black,sans-serif" font-size="22" font-weight="900" fill="rgba(99,102,241,0.28)">WRITE</text></g>
+        <g opacity="0.4" transform="rotate(-6,128,376)" filter="url(#lpgc)"><text x="58" y="392" font-family="Arial Black,sans-serif" font-size="20" font-weight="900" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linejoin="round">CITE</text><text x="60" y="392" font-family="Arial Black,sans-serif" font-size="20" font-weight="900" fill="rgba(6,182,212,0.22)">CITE</text></g>
+        <g opacity="0.36" transform="rotate(-14,775,334)" filter="url(#lpgp)"><text x="705" y="352" font-family="Arial Black,sans-serif" font-size="18" font-weight="900" fill="none" stroke="#e879f9" stroke-width="2" stroke-linejoin="round">THINK</text><text x="707" y="352" font-family="Arial Black,sans-serif" font-size="18" font-weight="900" fill="rgba(232,121,249,0.22)">THINK</text></g>
+        <g filter="url(#lpgc)" opacity="0.56"><circle cx="758" cy="170" r="3" fill="#06b6d4"/><circle cx="778" cy="200" r="2" fill="#a5f3fc"/><circle cx="748" cy="230" r="2.5" fill="#06b6d4"/></g>
+        <g filter="url(#lpgv)" opacity="0.46"><circle cx="138" cy="298" r="3" fill="#818cf8"/><circle cx="116" cy="268" r="2" fill="#c4b5fd"/><circle cx="153" cy="328" r="2.5" fill="#a78bfa"/></g>
+        <g filter="url(#lpgp)" opacity="0.36"><circle cx="818" cy="410" r="3" fill="#f0abfc"/><circle cx="838" cy="380" r="2" fill="#e879f9"/></g>
+        </svg>
+        </div>
+
+        <div class="lp-title">
+          <h1>AGENT<span class="lp-o">43</span></h1>
+          <div class="lp-sub">AI &middot; Academic &middot; Writing &middot; System</div>
+        </div>
+        <div class="lp-pills">
+          <span class="lp-pill on">Intl. Business</span>
+          <span class="lp-pill on">Intl. Marketing</span>
+          <span class="lp-pill on">Health &amp; Social Care</span>
+          <span class="lp-pill">9 Agents</span>
+          <span class="lp-pill">Zero Hallucinations</span>
+        </div>
+
+        <div class="lp-hr"></div>
+        <div class="lp-eyebrow">&#8212; Restricted Access &#8212;</div>
+
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Native Streamlit widgets — stable, no crash on click ────────────
+    col1, col2, col3 = st.columns([1, 1.2, 1])
+    with col2:
+        pwd = st.text_input(
+            "pwd", type="password",
+            label_visibility="collapsed",
+            placeholder="Enter access password"
+        )
+        clicked = st.button("Enter System  →", use_container_width=True)
+        if clicked:
             if pwd == APP_PASSWORD:
                 st.session_state["authenticated"] = True
                 st.rerun()
             else:
-                st.error("Incorrect password.")
+                st.error("Incorrect password — try again.")
+
     return False
 
 # ─────────────────────────────────────────────
