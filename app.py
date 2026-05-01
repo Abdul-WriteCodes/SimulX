@@ -4,6 +4,7 @@ Single-file Streamlit application
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import openai
 import json
 import re
@@ -2087,207 +2088,47 @@ def inject_css():
     ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #334155; }
 
-    /* ── LANDING PAGE ─────────────────────────────────────────────────── */
-    .landing-wrap {
-        min-height: 100vh;
-        background: #05070d;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+    /* ── Auth card (shown below mascot component) ─────────────────────── */
+    .auth-card {
+        background: rgba(13,20,36,0.92);
+        border: 1px solid rgba(99,102,241,0.22);
+        border-radius: 6px;
+        padding: 2.2rem 2.2rem 1.6rem;
+        text-align: center;
+        box-shadow: 0 30px 70px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.08);
         position: relative;
         overflow: hidden;
-        padding-bottom: 4rem;
+        margin-top: -0.5rem;
     }
-    /* top scan-line texture */
-    .landing-wrap::before {
-        content: '';
-        position: fixed;
-        inset: 0;
-        background-image: repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 2px,
-            rgba(0,0,0,0.08) 2px,
-            rgba(0,0,0,0.08) 4px
-        );
-        pointer-events: none;
-        z-index: 0;
-    }
-    .landing-bg-glow {
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(120px);
-        pointer-events: none;
-    }
-    .landing-bg-glow-1 {
-        width: 700px; height: 700px;
-        background: radial-gradient(circle, rgba(99,102,241,0.13) 0%, transparent 70%);
-        top: -200px; left: 50%;
-        transform: translateX(-50%);
-    }
-    .landing-bg-glow-2 {
-        width: 400px; height: 400px;
-        background: radial-gradient(circle, rgba(236,72,153,0.07) 0%, transparent 70%);
-        top: 200px; right: -100px;
-    }
-    .landing-bg-glow-3 {
-        width: 350px; height: 350px;
-        background: radial-gradient(circle, rgba(6,182,212,0.06) 0%, transparent 70%);
-        top: 300px; left: -100px;
-    }
-    /* top tag strip */
-    .landing-tag-strip {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1.2rem 2.5rem;
-        position: relative;
-        z-index: 2;
-        border-bottom: 1px solid rgba(255,255,255,0.03);
-    }
-    .landing-tag-left {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.6rem;
-        letter-spacing: 0.25em;
-        color: rgba(99,102,241,0.6);
-        text-transform: uppercase;
-    }
-    .landing-tag-right {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.6rem;
-        letter-spacing: 0.2em;
-        color: rgba(255,255,255,0.12);
-        text-transform: uppercase;
-    }
-    /* mascot SVG container */
-    .mascot-stage {
-        position: relative;
-        z-index: 2;
-        margin: 1.5rem auto 0;
-        width: 100%;
-        max-width: 900px;
-        display: flex;
-        justify-content: center;
-    }
-    .mascot-stage svg {
-        width: 100%;
-        height: auto;
-        filter: drop-shadow(0 0 60px rgba(99,102,241,0.25)) drop-shadow(0 0 120px rgba(236,72,153,0.1));
-    }
-    /* title block below mascot */
-    .landing-title-block {
-        position: relative;
-        z-index: 2;
-        text-align: center;
-        margin-top: -1rem;
-        padding: 0 1rem;
-    }
-    .landing-title-block h1 {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: clamp(2.2rem, 5vw, 4rem);
-        font-weight: 700;
-        color: #f1f5f9;
-        letter-spacing: -0.02em;
-        line-height: 1;
-        margin: 0 0 0.5rem;
-    }
-    .landing-title-block h1 span.accent {
-        color: transparent;
-        -webkit-text-stroke: 1px rgba(99,102,241,0.8);
-    }
-    .landing-title-block .tagline {
-        font-size: 0.82rem;
-        color: rgba(148,163,184,0.55);
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        font-family: 'JetBrains Mono', monospace;
-        margin-bottom: 2.5rem;
-    }
-    /* discipline pills */
-    .landing-pills {
-        display: flex;
-        gap: 0.6rem;
-        justify-content: center;
-        flex-wrap: wrap;
-        margin-bottom: 3rem;
-        position: relative;
-        z-index: 2;
-    }
-    .landing-pill {
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.07);
-        border-radius: 2px;
-        padding: 0.4rem 1rem;
-        font-size: 0.68rem;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        font-family: 'JetBrains Mono', monospace;
-        color: rgba(148,163,184,0.5);
-        transition: all 0.2s;
-    }
-    .landing-pill.active {
-        background: rgba(99,102,241,0.12);
-        border-color: rgba(99,102,241,0.35);
-        color: rgba(165,180,252,0.9);
-    }
-    /* auth card on landing */
-    .landing-auth-card {
-        position: relative;
-        z-index: 2;
-        background: rgba(13,20,36,0.85);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(99,102,241,0.2);
-        border-radius: 4px;
-        padding: 2.5rem 2.5rem 2rem;
-        width: 100%;
-        max-width: 380px;
-        text-align: center;
-        box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.08);
-    }
-    .landing-auth-card::before {
+    .auth-card::before {
         content: '';
         position: absolute;
         top: 0; left: 10%; right: 10%;
         height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(165,180,252,0.5), transparent);
+        background: linear-gradient(90deg, transparent, rgba(165,180,252,0.6), transparent);
     }
-    .landing-auth-logo {
+    .auth-logo {
         font-family: 'JetBrains Mono', monospace;
-        font-size: 0.62rem;
-        letter-spacing: 0.3em;
+        font-size: 0.58rem;
+        letter-spacing: 0.32em;
         color: rgba(165,180,252,0.4);
         text-transform: uppercase;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.6rem;
     }
-    .landing-auth-title {
-        font-size: 1.5rem;
+    .auth-title {
+        font-size: 1.45rem;
         font-weight: 700;
         color: #f1f5f9;
-        letter-spacing: -0.5px;
-        margin-bottom: 0.25rem;
-        font-family: 'Inter', sans-serif;
+        letter-spacing: -0.4px;
+        margin-bottom: 0.2rem;
     }
-    .landing-auth-sub {
-        font-size: 0.72rem;
-        color: rgba(71,85,105,0.8);
-        letter-spacing: 0.08em;
+    .auth-subtitle {
+        font-size: 0.7rem;
+        color: rgba(71,85,105,0.85);
+        letter-spacing: 0.1em;
         text-transform: uppercase;
         font-family: 'JetBrains Mono', monospace;
-        margin-bottom: 1.75rem;
-    }
-    /* bottom grid line decoration */
-    .landing-grid-line {
-        position: absolute;
-        bottom: 0; left: 0; right: 0;
-        height: 180px;
-        background:
-            linear-gradient(to top, rgba(5,7,13,1) 0%, transparent 100%),
-            repeating-linear-gradient(90deg, rgba(99,102,241,0.04) 0px, rgba(99,102,241,0.04) 1px, transparent 1px, transparent 60px),
-            repeating-linear-gradient(0deg,  rgba(99,102,241,0.04) 0px, rgba(99,102,241,0.04) 1px, transparent 1px, transparent 60px);
-        pointer-events: none;
-        z-index: 1;
+        margin-bottom: 1.6rem;
     }
 
     </style>
@@ -2297,406 +2138,434 @@ def inject_css():
 #  AUTH
 # ─────────────────────────────────────────────
 
+LANDING_HTML = """<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+
+  body {
+    background: #05070d;
+    font-family: 'JetBrains Mono', monospace;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* scan-line overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px
+    );
+    pointer-events: none; z-index: 10;
+  }
+
+  /* atmospheric glows */
+  .glow-1, .glow-2, .glow-3 {
+    position: absolute; border-radius: 50%;
+    filter: blur(100px); pointer-events: none;
+  }
+  .glow-1 { width:600px; height:600px;
+    background: radial-gradient(circle, rgba(99,102,241,0.14) 0%, transparent 70%);
+    top:-200px; left:50%; transform:translateX(-50%); }
+  .glow-2 { width:350px; height:350px;
+    background: radial-gradient(circle, rgba(236,72,153,0.08) 0%, transparent 70%);
+    top:150px; right:-80px; }
+  .glow-3 { width:300px; height:300px;
+    background: radial-gradient(circle, rgba(6,182,212,0.07) 0%, transparent 70%);
+    top:200px; left:-80px; }
+
+  /* grid floor */
+  .grid-floor {
+    position: absolute; bottom:0; left:0; right:0; height:140px;
+    background:
+      linear-gradient(to top, rgba(5,7,13,1) 0%, transparent 100%),
+      repeating-linear-gradient(90deg, rgba(99,102,241,0.05) 0px, rgba(99,102,241,0.05) 1px, transparent 1px, transparent 55px),
+      repeating-linear-gradient(0deg,  rgba(99,102,241,0.05) 0px, rgba(99,102,241,0.05) 1px, transparent 1px, transparent 55px);
+    pointer-events: none;
+  }
+
+  /* top strip */
+  .strip {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    position: relative; z-index: 2;
+  }
+  .strip-l { font-size: 0.58rem; letter-spacing: 0.24em; color: rgba(99,102,241,0.65); text-transform: uppercase; }
+  .strip-r { font-size: 0.58rem; letter-spacing: 0.2em;  color: rgba(255,255,255,0.12); text-transform: uppercase; }
+
+  /* mascot SVG wrapper */
+  .mascot { position: relative; z-index: 2; display: flex; justify-content: center; margin-top: 0.5rem; }
+  .mascot svg { width: 100%; max-width: 860px; height: auto; overflow: visible;
+    filter: drop-shadow(0 0 50px rgba(99,102,241,0.22)) drop-shadow(0 0 100px rgba(236,72,153,0.09)); }
+
+  /* title block */
+  .title-block { text-align: center; position: relative; z-index: 2; margin-top: -0.5rem; padding: 0 1rem; }
+  .title-block h1 {
+    font-size: clamp(2rem, 5vw, 3.6rem); font-weight: 800; color: #f1f5f9;
+    letter-spacing: -0.02em; line-height: 1; margin-bottom: 0.4rem;
+  }
+  .title-block h1 .outline {
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgba(99,102,241,0.75);
+  }
+  .tagline { font-size: 0.62rem; letter-spacing: 0.22em; color: rgba(148,163,184,0.45); text-transform: uppercase; margin-bottom: 1.4rem; }
+
+  /* pills */
+  .pills { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; padding: 0 1rem 1.5rem; position: relative; z-index: 2; }
+  .pill {
+    background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.065);
+    border-radius: 2px; padding: 0.32rem 0.9rem;
+    font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(148,163,184,0.45);
+  }
+  .pill.on { background: rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.32); color: rgba(165,180,252,0.9); }
+</style>
+</head>
+<body>
+
+<div class="glow-1"></div>
+<div class="glow-2"></div>
+<div class="glow-3"></div>
+<div class="grid-floor"></div>
+
+<div class="strip">
+  <span class="strip-l">Agent43 &middot; System v2.0</span>
+  <span class="strip-r">Academic &middot; Intelligence &middot; Engine</span>
+</div>
+
+<div class="mascot">
+<svg viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <filter id="gv" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="5" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="gc" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="4" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="gp" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur stdDeviation="9" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="gs" x="-80%" y="-80%" width="260%" height="260%">
+    <feGaussianBlur stdDeviation="20"/>
+  </filter>
+  <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#1e1b4b"/>
+    <stop offset="100%" stop-color="#0f0c24"/>
+  </linearGradient>
+  <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#2d2a5e"/>
+    <stop offset="100%" stop-color="#1a1740"/>
+  </linearGradient>
+  <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#0e7490"/>
+    <stop offset="100%" stop-color="#0c4a6e"/>
+  </linearGradient>
+  <linearGradient id="alg" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#312e81"/>
+    <stop offset="100%" stop-color="#1e1b4b"/>
+  </linearGradient>
+  <linearGradient id="arg" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#1e1b4b"/>
+    <stop offset="100%" stop-color="#312e81"/>
+  </linearGradient>
+  <linearGradient id="spg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#c026d3"/>
+    <stop offset="100%" stop-color="#7c3aed"/>
+  </linearGradient>
+  <radialGradient id="spb" cx="30%" cy="30%" r="70%">
+    <stop offset="0%"   stop-color="#f0abfc" stop-opacity="0.9"/>
+    <stop offset="50%"  stop-color="#c026d3" stop-opacity="0.5"/>
+    <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="elg" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"   stop-color="#a5f3fc"/>
+    <stop offset="60%"  stop-color="#06b6d4" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#0891b2" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="erg" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"   stop-color="#f0abfc"/>
+    <stop offset="60%"  stop-color="#e879f9" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#a21caf" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+
+<!-- BIG 43 WALL TAG -->
+<g opacity="0.16" filter="url(#gp)">
+  <text x="100" y="430" font-family="Arial Black,sans-serif" font-size="310" font-weight="900"
+    fill="none" stroke="#c026d3" stroke-width="5" stroke-linejoin="round">43</text>
+</g>
+<g opacity="0.06">
+  <text x="106" y="436" font-family="Arial Black,sans-serif" font-size="310" font-weight="900"
+    fill="none" stroke="#06b6d4" stroke-width="3" stroke-linejoin="round">43</text>
+</g>
+
+<!-- SPLATTER BEHIND -->
+<g opacity="0.22" filter="url(#gv)">
+  <circle cx="168" cy="158" r="4"   fill="#a78bfa"/>
+  <circle cx="153" cy="176" r="2.5" fill="#c4b5fd"/>
+  <circle cx="184" cy="170" r="3"   fill="#818cf8"/>
+  <circle cx="143" cy="193" r="2"   fill="#a78bfa"/>
+  <circle cx="198" cy="153" r="2"   fill="#c4b5fd"/>
+</g>
+
+<!-- GROUND SHADOW -->
+<ellipse cx="450" cy="510" rx="220" ry="18" fill="rgba(99,102,241,0.10)" filter="url(#gs)"/>
+
+<!-- LEGS -->
+<rect x="368" y="430" width="58" height="70" rx="6" fill="url(#bg)" stroke="#4f46e5" stroke-width="1.5"/>
+<rect x="375" y="433" width="44" height="7"  rx="3" fill="rgba(99,102,241,0.28)"/>
+<rect x="365" y="474" width="64" height="13" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
+<rect x="357" y="497" width="76" height="20" rx="7" fill="#0f0c24" stroke="#4f46e5" stroke-width="1.5"/>
+<rect x="361" y="500" width="68" height="5"  rx="2" fill="rgba(99,102,241,0.18)"/>
+
+<rect x="474" y="430" width="58" height="70" rx="6" fill="url(#bg)" stroke="#4f46e5" stroke-width="1.5"/>
+<rect x="481" y="433" width="44" height="7"  rx="3" fill="rgba(99,102,241,0.28)"/>
+<rect x="471" y="474" width="64" height="13" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
+<rect x="468" y="497" width="76" height="20" rx="7" fill="#0f0c24" stroke="#4f46e5" stroke-width="1.5"/>
+<rect x="472" y="500" width="68" height="5"  rx="2" fill="rgba(99,102,241,0.18)"/>
+
+<!-- TORSO -->
+<rect x="330" y="248" width="240" height="192" rx="18" fill="url(#bg)" stroke="#4f46e5" stroke-width="2"/>
+<rect x="340" y="260" width="220" height="5"   rx="2" fill="rgba(99,102,241,0.22)"/>
+
+<!-- CHEST SCREEN -->
+<rect x="355" y="280" width="190" height="108" rx="10" fill="url(#sg)" stroke="#06b6d4" stroke-width="1.5" opacity="0.92"/>
+<text x="365" y="300" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(165,243,252,0.85)">analyzing_brief(context)...</text>
+<text x="365" y="313" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(165,243,252,0.6)">semantic_retrieval &#8594; OK</text>
+<text x="365" y="326" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(165,243,252,0.75)">agent_dispatch: ALPHA</text>
+<text x="365" y="339" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(165,243,252,0.5)">citation_index: 14 sources</text>
+<text x="365" y="352" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(165,243,252,0.7)">writing &#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9617;&#9617;</text>
+<text x="365" y="365" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(165,243,252,0.45)">originality_score: 91%</text>
+<text x="365" y="378" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(165,243,252,0.6)">export &#8594; .docx &#10003;</text>
+<rect x="365" y="384" width="6" height="8" rx="1" fill="#a5f3fc" opacity="0.9"/>
+<rect x="357" y="282" width="90" height="28" rx="5" fill="rgba(255,255,255,0.03)"/>
+
+<!-- TORSO BOLTS -->
+<circle cx="345" cy="276" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="555" cy="276" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="345" cy="430" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="555" cy="430" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+
+<!-- VENTS -->
+<rect x="360" y="406" width="18" height="22" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="384" y="406" width="18" height="22" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="408" y="406" width="18" height="22" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="432" y="406" width="18" height="22" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="456" y="406" width="18" height="22" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="480" y="406" width="18" height="22" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="504" y="406" width="18" height="22" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="360" y="427" width="162" height="3" rx="1.5" fill="rgba(99,102,241,0.45)" filter="url(#gv)"/>
+
+<!-- SHOULDER JOINTS -->
+<circle cx="330" cy="272" r="22" fill="#1e1b4b" stroke="#6366f1" stroke-width="2"/>
+<circle cx="330" cy="272" r="12" fill="#312e81" stroke="#818cf8" stroke-width="1.5"/>
+<circle cx="330" cy="272" r="5"  fill="#a78bfa"/>
+<circle cx="570" cy="272" r="22" fill="#1e1b4b" stroke="#6366f1" stroke-width="2"/>
+<circle cx="570" cy="272" r="12" fill="#312e81" stroke="#818cf8" stroke-width="1.5"/>
+<circle cx="570" cy="272" r="5"  fill="#a78bfa"/>
+
+<!-- LEFT ARM — raised, holding spray can -->
+<g transform="rotate(-38,308,272)">
+  <rect x="240" y="256" width="72" height="34" rx="12" fill="url(#alg)" stroke="#4f46e5" stroke-width="1.5"/>
+  <circle cx="252" cy="273" r="13" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
+  <circle cx="252" cy="273" r="7"  fill="#312e81" stroke="#818cf8" stroke-width="1"/>
+  <rect x="178" y="258" width="78" height="28" rx="10" fill="url(#alg)" stroke="#4f46e5" stroke-width="1.5"/>
+  <circle cx="190" cy="272" r="11" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
+  <rect x="148" y="258" width="46" height="30" rx="8" fill="#312e81" stroke="#6366f1" stroke-width="1.5"/>
+  <line x1="156" y1="266" x2="156" y2="281" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="164" y1="264" x2="164" y2="283" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="172" y1="264" x2="172" y2="283" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="180" y1="266" x2="180" y2="281" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+</g>
+
+<!-- SPRAY CAN -->
+<rect x="90" y="92" width="34" height="80" rx="10" fill="url(#spg)" stroke="#c026d3" stroke-width="1.5" filter="url(#gp)"/>
+<rect x="90" y="117" width="34" height="28" fill="rgba(240,171,252,0.18)"/>
+<text x="107" y="136" font-family="Arial Black,sans-serif" font-size="9" font-weight="900" fill="white" text-anchor="middle" opacity="0.9">43</text>
+<rect x="95" y="84"  width="24" height="12" rx="5" fill="#e879f9" stroke="#f0abfc" stroke-width="1"/>
+<rect x="107" y="76" width="8"  height="12" rx="3" fill="#f5d0fe"/>
+
+<!-- SPRAY BURST -->
+<g filter="url(#gp)" opacity="0.88">
+  <ellipse cx="93"  cy="64" rx="28" ry="20" fill="url(#spb)" opacity="0.72"/>
+  <ellipse cx="76"  cy="50" rx="18" ry="13" fill="rgba(192,38,211,0.5)"/>
+  <ellipse cx="113" cy="52" rx="15" ry="10" fill="rgba(124,58,237,0.5)"/>
+  <circle cx="58"   cy="44" r="3.5" fill="#f0abfc" opacity="0.7"/>
+  <circle cx="70"   cy="34" r="2.5" fill="#e879f9" opacity="0.6"/>
+  <circle cx="83"   cy="28" r="2"   fill="#c026d3" opacity="0.5"/>
+  <circle cx="98"   cy="30" r="3"   fill="#a78bfa" opacity="0.6"/>
+  <circle cx="113"  cy="36" r="2"   fill="#f0abfc" opacity="0.5"/>
+  <circle cx="48"   cy="56" r="2"   fill="#e879f9" opacity="0.4"/>
+  <circle cx="124"  cy="47" r="2.5" fill="#c4b5fd" opacity="0.5"/>
+  <circle cx="53"   cy="37" r="1.5" fill="#f5d0fe" opacity="0.4"/>
+</g>
+
+<!-- GRAFFITI TEXT BEING SPRAYED -->
+<g filter="url(#gp)" opacity="0.88">
+  <text x="150" y="58" font-family="Arial Black,sans-serif" font-size="36" font-weight="900"
+    fill="none" stroke="#c026d3" stroke-width="3.5" stroke-linejoin="round"
+    transform="rotate(-7,150,58)">AGENT</text>
+  <text x="152" y="58" font-family="Arial Black,sans-serif" font-size="36" font-weight="900"
+    fill="rgba(192,38,211,0.32)"
+    transform="rotate(-7,150,58)">AGENT</text>
+</g>
+
+<!-- RIGHT ARM — relaxed -->
+<g transform="rotate(18,592,272)">
+  <rect x="590" y="256" width="72" height="34" rx="12" fill="url(#arg)" stroke="#4f46e5" stroke-width="1.5"/>
+  <circle cx="648" cy="273" r="13" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
+  <circle cx="648" cy="273" r="7"  fill="#312e81" stroke="#818cf8" stroke-width="1"/>
+  <rect x="644" y="258" width="78" height="28" rx="10" fill="url(#arg)" stroke="#4f46e5" stroke-width="1.5"/>
+  <circle cx="710" cy="272" r="11" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
+  <rect x="706" y="256" width="46" height="32" rx="8" fill="#312e81" stroke="#6366f1" stroke-width="1.5"/>
+  <line x1="714" y1="264" x2="714" y2="281" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="722" y1="262" x2="722" y2="283" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="730" y1="262" x2="730" y2="283" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="738" y1="264" x2="738" y2="281" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+</g>
+
+<!-- NECK -->
+<rect x="414" y="210" width="72" height="42" rx="6" fill="#1a1740" stroke="#4f46e5" stroke-width="1.5"/>
+<rect x="414" y="219" width="72" height="5" rx="2" fill="rgba(99,102,241,0.28)"/>
+<rect x="414" y="230" width="72" height="5" rx="2" fill="rgba(99,102,241,0.22)"/>
+<rect x="414" y="241" width="72" height="5" rx="2" fill="rgba(99,102,241,0.16)"/>
+
+<!-- HEAD -->
+<rect x="340" y="72" width="220" height="145" rx="22" fill="url(#hg)" stroke="#6366f1" stroke-width="2.5"/>
+<rect x="350" y="82"  width="200" height="6" rx="3" fill="rgba(99,102,241,0.28)"/>
+
+<!-- ANTENNAS -->
+<rect x="380" y="50" width="8" height="28" rx="4" fill="#4f46e5" stroke="#818cf8" stroke-width="1"/>
+<circle cx="384" cy="44" r="9" fill="#312e81" stroke="#818cf8" stroke-width="1.5" filter="url(#gv)"/>
+<circle cx="384" cy="44" r="5" fill="#a78bfa" filter="url(#gv)"/>
+<rect x="512" y="50" width="8" height="28" rx="4" fill="#4f46e5" stroke="#818cf8" stroke-width="1"/>
+<circle cx="516" cy="44" r="9" fill="#312e81" stroke="#818cf8" stroke-width="1.5" filter="url(#gv)"/>
+<circle cx="516" cy="44" r="5" fill="#a78bfa" filter="url(#gv)"/>
+
+<!-- HEAD BOLTS -->
+<circle cx="345" cy="112" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="555" cy="112" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="345" cy="178" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="555" cy="178" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+
+<!-- FACE PANEL -->
+<rect x="358" y="92" width="184" height="112" rx="14" fill="#0a0e1c" stroke="#4f46e5" stroke-width="1.5"/>
+
+<!-- EYE LEFT — cyan -->
+<rect x="375" y="108" width="64" height="42" rx="10" fill="#0e1a2e" stroke="#06b6d4" stroke-width="2"/>
+<rect x="378" y="111" width="58" height="36" rx="8" fill="url(#elg)" opacity="0.14"/>
+<circle cx="407" cy="129" r="14" fill="#0891b2" filter="url(#gc)"/>
+<circle cx="407" cy="129" r="9"  fill="#06b6d4"/>
+<circle cx="407" cy="129" r="5"  fill="#a5f3fc"/>
+<circle cx="412" cy="124" r="2.5" fill="white" opacity="0.9"/>
+<rect x="376" y="127" width="62" height="3" rx="1.5" fill="rgba(6,182,212,0.38)"/>
+
+<!-- EYE RIGHT — magenta -->
+<rect x="461" y="108" width="64" height="42" rx="10" fill="#1a0e2e" stroke="#e879f9" stroke-width="2"/>
+<rect x="464" y="111" width="58" height="36" rx="8" fill="url(#erg)" opacity="0.14"/>
+<circle cx="493" cy="129" r="14" fill="#a21caf" filter="url(#gp)"/>
+<circle cx="493" cy="129" r="9"  fill="#e879f9"/>
+<circle cx="493" cy="129" r="5"  fill="#f0abfc"/>
+<circle cx="498" cy="124" r="2.5" fill="white" opacity="0.9"/>
+<rect x="462" y="127" width="62" height="3" rx="1.5" fill="rgba(232,121,249,0.38)"/>
+
+<!-- MOUTH GRILLE -->
+<rect x="375" y="168" width="150" height="26" rx="8" fill="#07091a" stroke="#4f46e5" stroke-width="1.5"/>
+<rect x="382" y="172" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="397" y="172" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="412" y="172" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="427" y="172" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="442" y="172" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="457" y="172" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="472" y="172" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="487" y="172" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="502" y="172" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="375" y="192" width="150" height="3" rx="1.5" fill="rgba(99,102,241,0.5)" filter="url(#gv)"/>
+
+<!-- FLOATING TAGS -->
+<g opacity="0.52" transform="rotate(12,678,128)" filter="url(#gv)">
+  <text x="618" y="145" font-family="Arial Black,sans-serif" font-size="22" font-weight="900"
+    fill="none" stroke="#818cf8" stroke-width="2.5" stroke-linejoin="round">WRITE</text>
+  <text x="620" y="145" font-family="Arial Black,sans-serif" font-size="22" font-weight="900"
+    fill="rgba(99,102,241,0.28)">WRITE</text>
+</g>
+<g opacity="0.42" transform="rotate(-6,128,388)" filter="url(#gc)">
+  <text x="58"  y="404" font-family="Arial Black,sans-serif" font-size="20" font-weight="900"
+    fill="none" stroke="#06b6d4" stroke-width="2" stroke-linejoin="round">CITE</text>
+  <text x="60"  y="404" font-family="Arial Black,sans-serif" font-size="20" font-weight="900"
+    fill="rgba(6,182,212,0.22)">CITE</text>
+</g>
+<g opacity="0.38" transform="rotate(-14,775,342)" filter="url(#gp)">
+  <text x="705" y="360" font-family="Arial Black,sans-serif" font-size="18" font-weight="900"
+    fill="none" stroke="#e879f9" stroke-width="2" stroke-linejoin="round">THINK</text>
+  <text x="707" y="360" font-family="Arial Black,sans-serif" font-size="18" font-weight="900"
+    fill="rgba(232,121,249,0.22)">THINK</text>
+</g>
+
+<!-- AMBIENT PARTICLES -->
+<g filter="url(#gc)" opacity="0.58">
+  <circle cx="758" cy="178" r="3"   fill="#06b6d4"/>
+  <circle cx="778" cy="208" r="2"   fill="#a5f3fc"/>
+  <circle cx="748" cy="238" r="2.5" fill="#06b6d4"/>
+  <circle cx="798" cy="158" r="1.5" fill="#67e8f9"/>
+</g>
+<g filter="url(#gv)" opacity="0.48">
+  <circle cx="138" cy="308" r="3"   fill="#818cf8"/>
+  <circle cx="116" cy="278" r="2"   fill="#c4b5fd"/>
+  <circle cx="153" cy="338" r="2.5" fill="#a78bfa"/>
+</g>
+<g filter="url(#gp)" opacity="0.38">
+  <circle cx="818" cy="418" r="3" fill="#f0abfc"/>
+  <circle cx="838" cy="388" r="2" fill="#e879f9"/>
+  <circle cx="798" cy="443" r="2" fill="#f5d0fe"/>
+</g>
+
+</svg>
+</div>
+
+<div class="title-block">
+  <h1>AGENT<span class="outline">43</span></h1>
+  <div class="tagline">AI &middot; Academic &middot; Writing &middot; System</div>
+</div>
+
+<div class="pills">
+  <span class="pill on">International Business</span>
+  <span class="pill on">International Marketing</span>
+  <span class="pill on">Health &amp; Social Care</span>
+  <span class="pill">9 Specialist Agents</span>
+  <span class="pill">Zero Hallucinations</span>
+</div>
+
+</body>
+</html>"""
+
+
 def auth_gate():
     if st.session_state.get("authenticated"):
         return True
 
-    st.markdown("""
-    <div class="landing-wrap">
+    # Render the full mascot landing page in an iframe (avoids Streamlit HTML escaping)
+    components.html(LANDING_HTML, height=700, scrolling=False)
 
-        <!-- atmospheric glows -->
-        <div class="landing-bg-glow landing-bg-glow-1"></div>
-        <div class="landing-bg-glow landing-bg-glow-2"></div>
-        <div class="landing-bg-glow landing-bg-glow-3"></div>
-        <div class="landing-grid-line"></div>
-
-        <!-- top strip -->
-        <div class="landing-tag-strip">
-            <span class="landing-tag-left">Agent43 · System v2.0</span>
-            <span class="landing-tag-right">Academic · Intelligence · Engine</span>
-        </div>
-
-        <!-- ══════════════ MASCOT SVG ══════════════ -->
-        <div class="mascot-stage">
-          <svg viewBox="0 0 900 560" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
-            <defs>
-              <!-- neon glow filters -->
-              <filter id="glow-violet" x="-40%" y="-40%" width="180%" height="180%">
-                <feGaussianBlur stdDeviation="6" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-              <filter id="glow-cyan" x="-40%" y="-40%" width="180%" height="180%">
-                <feGaussianBlur stdDeviation="5" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-              <filter id="glow-pink" x="-40%" y="-40%" width="180%" height="180%">
-                <feGaussianBlur stdDeviation="8" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-              <filter id="glow-soft" x="-60%" y="-60%" width="220%" height="220%">
-                <feGaussianBlur stdDeviation="18" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-              <filter id="noise">
-                <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/>
-                <feColorMatrix type="saturate" values="0"/>
-                <feBlend in="SourceGraphic" mode="overlay" result="blend"/>
-                <feComposite in="blend" in2="SourceGraphic" operator="in"/>
-              </filter>
-              <!-- gradients -->
-              <linearGradient id="body-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#1e1b4b"/>
-                <stop offset="100%" stop-color="#0f0c24"/>
-              </linearGradient>
-              <linearGradient id="head-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#2d2a5e"/>
-                <stop offset="100%" stop-color="#1a1740"/>
-              </linearGradient>
-              <linearGradient id="screen-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#0e7490"/>
-                <stop offset="100%" stop-color="#0c4a6e"/>
-              </linearGradient>
-              <radialGradient id="eye-glow-l" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stop-color="#a5f3fc" stop-opacity="1"/>
-                <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.8"/>
-                <stop offset="100%" stop-color="#0891b2" stop-opacity="0"/>
-              </radialGradient>
-              <radialGradient id="eye-glow-r" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stop-color="#f0abfc" stop-opacity="1"/>
-                <stop offset="60%" stop-color="#e879f9" stop-opacity="0.8"/>
-                <stop offset="100%" stop-color="#a21caf" stop-opacity="0"/>
-              </radialGradient>
-              <linearGradient id="arm-l-grad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#312e81"/>
-                <stop offset="100%" stop-color="#1e1b4b"/>
-              </linearGradient>
-              <linearGradient id="arm-r-grad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#1e1b4b"/>
-                <stop offset="100%" stop-color="#312e81"/>
-              </linearGradient>
-              <linearGradient id="spray-grad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#c026d3"/>
-                <stop offset="100%" stop-color="#7c3aed"/>
-              </linearGradient>
-              <radialGradient id="spray-burst" cx="30%" cy="30%" r="70%">
-                <stop offset="0%" stop-color="#f0abfc" stop-opacity="0.9"/>
-                <stop offset="50%" stop-color="#c026d3" stop-opacity="0.5"/>
-                <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
-              </radialGradient>
-            </defs>
-
-            <!-- ─── GRAFFITI TAG BEHIND ROBOT ─── -->
-            <!-- Big stylised "43" tag on the wall -->
-            <g opacity="0.18" filter="url(#glow-pink)">
-              <text x="110" y="440" font-family="'Arial Black', sans-serif" font-size="310" font-weight="900"
-                    fill="none" stroke="#c026d3" stroke-width="6" stroke-linejoin="round"
-                    letter-spacing="-20">43</text>
-            </g>
-            <!-- faded outline double -->
-            <g opacity="0.07">
-              <text x="116" y="447" font-family="'Arial Black', sans-serif" font-size="310" font-weight="900"
-                    fill="none" stroke="#06b6d4" stroke-width="3" stroke-linejoin="round"
-                    letter-spacing="-20">43</text>
-            </g>
-
-            <!-- spray splatter dots behind -->
-            <g opacity="0.25" filter="url(#glow-violet)">
-              <circle cx="170" cy="160" r="4" fill="#a78bfa"/>
-              <circle cx="155" cy="178" r="2.5" fill="#c4b5fd"/>
-              <circle cx="185" cy="172" r="3" fill="#818cf8"/>
-              <circle cx="145" cy="195" r="2" fill="#a78bfa"/>
-              <circle cx="200" cy="155" r="2" fill="#c4b5fd"/>
-              <circle cx="162" cy="148" r="1.5" fill="#818cf8"/>
-            </g>
-
-            <!-- ─── GROUND SHADOW ─── -->
-            <ellipse cx="450" cy="530" rx="230" ry="20" fill="rgba(99,102,241,0.12)" filter="url(#glow-soft)"/>
-
-            <!-- ─── LEGS ─── -->
-            <!-- Left leg -->
-            <rect x="368" y="445" width="58" height="75" rx="6" fill="url(#body-grad)" stroke="#4f46e5" stroke-width="1.5"/>
-            <rect x="375" y="448" width="44" height="8" rx="3" fill="rgba(99,102,241,0.3)"/>
-            <!-- left knee joint -->
-            <rect x="365" y="490" width="64" height="14" rx="7" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
-            <!-- left foot -->
-            <rect x="356" y="516" width="76" height="22" rx="8" fill="#0f0c24" stroke="#4f46e5" stroke-width="1.5"/>
-            <rect x="360" y="519" width="68" height="6" rx="3" fill="rgba(99,102,241,0.2)"/>
-
-            <!-- Right leg -->
-            <rect x="474" y="445" width="58" height="75" rx="6" fill="url(#body-grad)" stroke="#4f46e5" stroke-width="1.5"/>
-            <rect x="481" y="448" width="44" height="8" rx="3" fill="rgba(99,102,241,0.3)"/>
-            <!-- right knee joint -->
-            <rect x="471" y="490" width="64" height="14" rx="7" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
-            <!-- right foot -->
-            <rect x="468" y="516" width="76" height="22" rx="8" fill="#0f0c24" stroke="#4f46e5" stroke-width="1.5"/>
-            <rect x="472" y="519" width="68" height="6" rx="3" fill="rgba(99,102,241,0.2)"/>
-
-            <!-- ─── TORSO ─── -->
-            <rect x="330" y="255" width="240" height="200" rx="18" fill="url(#body-grad)" stroke="#4f46e5" stroke-width="2"/>
-            <!-- torso panel lines -->
-            <rect x="340" y="268" width="220" height="5" rx="2.5" fill="rgba(99,102,241,0.25)"/>
-            <!-- chest screen -->
-            <rect x="355" y="290" width="190" height="110" rx="10" fill="url(#screen-grad)" stroke="#06b6d4" stroke-width="1.5" opacity="0.9"/>
-            <!-- screen scanlines -->
-            <rect x="355" y="290" width="190" height="110" rx="10" fill="url(#noise)" opacity="0.05"/>
-            <!-- screen content: scrolling code lines -->
-            <text x="365" y="310" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(165,243,252,0.85)">analyzing_brief(context)...</text>
-            <text x="365" y="323" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(165,243,252,0.6)">semantic_retrieval → OK</text>
-            <text x="365" y="336" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(165,243,252,0.7)">agent_dispatch: ALPHA</text>
-            <text x="365" y="349" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(165,243,252,0.5)">citation_index: 14 sources</text>
-            <text x="365" y="362" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(165,243,252,0.75)">writing_stage_3 ████████░░</text>
-            <text x="365" y="375" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(165,243,252,0.4)">originality_score: 91%</text>
-            <text x="365" y="388" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(165,243,252,0.6)">export → .docx ✓</text>
-            <!-- screen cursor blink element -->
-            <rect x="365" y="395" width="6" height="9" rx="1" fill="#a5f3fc" opacity="0.9"/>
-            <!-- screen glare -->
-            <rect x="357" y="292" width="90" height="30" rx="6" fill="rgba(255,255,255,0.04)"/>
-
-            <!-- torso bolts -->
-            <circle cx="345" cy="285" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-            <circle cx="555" cy="285" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-            <circle cx="345" cy="440" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-            <circle cx="555" cy="440" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-
-            <!-- torso bottom vents -->
-            <rect x="360" y="415" width="18" height="24" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-            <rect x="384" y="415" width="18" height="24" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-            <rect x="408" y="415" width="18" height="24" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-            <rect x="432" y="415" width="18" height="24" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-            <rect x="456" y="415" width="18" height="24" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-            <rect x="480" y="415" width="18" height="24" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-            <rect x="504" y="415" width="18" height="24" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-            <!-- vent glow -->
-            <rect x="360" y="438" width="162" height="4" rx="2" fill="rgba(99,102,241,0.4)" filter="url(#glow-violet)"/>
-
-            <!-- shoulder joints -->
-            <circle cx="330" cy="280" r="22" fill="#1e1b4b" stroke="#6366f1" stroke-width="2"/>
-            <circle cx="330" cy="280" r="12" fill="#312e81" stroke="#818cf8" stroke-width="1.5"/>
-            <circle cx="330" cy="280" r="5"  fill="#a78bfa"/>
-            <circle cx="570" cy="280" r="22" fill="#1e1b4b" stroke="#6366f1" stroke-width="2"/>
-            <circle cx="570" cy="280" r="12" fill="#312e81" stroke="#818cf8" stroke-width="1.5"/>
-            <circle cx="570" cy="280" r="5"  fill="#a78bfa"/>
-
-            <!-- ─── LEFT ARM (raised, holding spray can) ─── -->
-            <g transform="rotate(-40, 308, 280)">
-              <!-- upper arm -->
-              <rect x="240" y="262" width="70" height="36" rx="12" fill="url(#arm-l-grad)" stroke="#4f46e5" stroke-width="1.5"/>
-              <!-- elbow joint -->
-              <circle cx="252" cy="280" r="14" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
-              <circle cx="252" cy="280" r="7"  fill="#312e81" stroke="#818cf8" stroke-width="1"/>
-              <!-- forearm -->
-              <rect x="178" y="265" width="78" height="30" rx="10" fill="url(#arm-l-grad)" stroke="#4f46e5" stroke-width="1.5"/>
-              <!-- wrist -->
-              <circle cx="190" cy="280" r="12" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
-              <!-- hand / fist holding can -->
-              <rect x="148" y="265" width="46" height="32" rx="8" fill="#312e81" stroke="#6366f1" stroke-width="1.5"/>
-              <!-- knuckle lines -->
-              <line x1="156" y1="274" x2="156" y2="289" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-              <line x1="164" y1="272" x2="164" y2="290" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-              <line x1="172" y1="272" x2="172" y2="290" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-              <line x1="180" y1="274" x2="180" y2="289" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-            </g>
-
-            <!-- ─── SPRAY CAN (separate, positioned at left hand area) ─── -->
-            <!-- spray can body -->
-            <rect x="90" y="100" width="34" height="80" rx="10" fill="url(#spray-grad)" stroke="#c026d3" stroke-width="1.5" filter="url(#glow-pink)"/>
-            <!-- can label band -->
-            <rect x="90" y="125" width="34" height="28" fill="rgba(240,171,252,0.2)"/>
-            <text x="107" y="143" font-family="'Arial Black',sans-serif" font-size="9" font-weight="900" fill="white" text-anchor="middle" opacity="0.9">43</text>
-            <!-- can cap -->
-            <rect x="95" y="92" width="24" height="12" rx="5" fill="#e879f9" stroke="#f0abfc" stroke-width="1"/>
-            <!-- can nozzle -->
-            <rect x="107" y="84" width="8" height="12" rx="3" fill="#f5d0fe"/>
-            <!-- spray burst emanating from nozzle -->
-            <g filter="url(#glow-pink)" opacity="0.85">
-              <!-- main burst cloud -->
-              <ellipse cx="95" cy="72" rx="28" ry="20" fill="url(#spray-burst)" opacity="0.7"/>
-              <ellipse cx="78"  cy="58" rx="18" ry="13" fill="rgba(192,38,211,0.5)"/>
-              <ellipse cx="115" cy="60" rx="15" ry="10" fill="rgba(124,58,237,0.5)"/>
-              <!-- fine mist dots -->
-              <circle cx="60"  cy="52" r="3.5" fill="#f0abfc" opacity="0.7"/>
-              <circle cx="72"  cy="42" r="2.5" fill="#e879f9" opacity="0.6"/>
-              <circle cx="85"  cy="36" r="2"   fill="#c026d3" opacity="0.5"/>
-              <circle cx="100" cy="38" r="3"   fill="#a78bfa" opacity="0.6"/>
-              <circle cx="115" cy="44" r="2"   fill="#f0abfc" opacity="0.5"/>
-              <circle cx="50"  cy="64" r="2"   fill="#e879f9" opacity="0.4"/>
-              <circle cx="126" cy="55" r="2.5" fill="#c4b5fd" opacity="0.5"/>
-              <circle cx="55"  cy="45" r="1.5" fill="#f5d0fe" opacity="0.4"/>
-              <circle cx="130" cy="43" r="1.5" fill="#f0abfc" opacity="0.3"/>
-            </g>
-
-            <!-- graffiti text being sprayed -->
-            <g filter="url(#glow-pink)" opacity="0.9">
-              <!-- "AGENT" tag in wild style -->
-              <text x="155" y="65" font-family="'Arial Black',sans-serif" font-size="38" font-weight="900"
-                    fill="none" stroke="#c026d3" stroke-width="3.5" stroke-linejoin="round"
-                    transform="rotate(-8, 155, 65)" letter-spacing="2">AGENT</text>
-              <text x="157" y="65" font-family="'Arial Black',sans-serif" font-size="38" font-weight="900"
-                    fill="rgba(192,38,211,0.35)" transform="rotate(-8, 155, 65)" letter-spacing="2">AGENT</text>
-            </g>
-
-            <!-- ─── RIGHT ARM (relaxed, slightly extended) ─── -->
-            <g transform="rotate(20, 592, 280)">
-              <!-- upper arm -->
-              <rect x="590" y="262" width="70" height="36" rx="12" fill="url(#arm-r-grad)" stroke="#4f46e5" stroke-width="1.5"/>
-              <!-- elbow -->
-              <circle cx="648" cy="280" r="14" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
-              <circle cx="648" cy="280" r="7"  fill="#312e81" stroke="#818cf8" stroke-width="1"/>
-              <!-- forearm -->
-              <rect x="644" y="265" width="78" height="30" rx="10" fill="url(#arm-r-grad)" stroke="#4f46e5" stroke-width="1.5"/>
-              <!-- wrist -->
-              <circle cx="710" cy="280" r="12" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
-              <!-- open hand / fingers pointing outward -->
-              <rect x="706" y="263" width="46" height="34" rx="8" fill="#312e81" stroke="#6366f1" stroke-width="1.5"/>
-              <!-- finger lines -->
-              <line x1="714" y1="271" x2="714" y2="288" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-              <line x1="722" y1="269" x2="722" y2="290" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-              <line x1="730" y1="269" x2="730" y2="290" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-              <line x1="738" y1="271" x2="738" y2="288" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-            </g>
-
-            <!-- ─── NECK ─── -->
-            <rect x="414" y="218" width="72" height="42" rx="6" fill="#1a1740" stroke="#4f46e5" stroke-width="1.5"/>
-            <!-- neck segments -->
-            <rect x="414" y="227" width="72" height="5" rx="2" fill="rgba(99,102,241,0.3)"/>
-            <rect x="414" y="238" width="72" height="5" rx="2" fill="rgba(99,102,241,0.25)"/>
-            <rect x="414" y="249" width="72" height="5" rx="2" fill="rgba(99,102,241,0.2)"/>
-
-            <!-- ─── HEAD ─── -->
-            <rect x="340" y="80" width="220" height="145" rx="22" fill="url(#head-grad)" stroke="#6366f1" stroke-width="2.5"/>
-            <!-- head top detail -->
-            <rect x="350" y="90"  width="200" height="6" rx="3" fill="rgba(99,102,241,0.3)"/>
-            <!-- antenna left -->
-            <rect x="380" y="58" width="8" height="28" rx="4" fill="#4f46e5" stroke="#818cf8" stroke-width="1"/>
-            <circle cx="384" cy="52" r="9" fill="#312e81" stroke="#818cf8" stroke-width="1.5" filter="url(#glow-violet)"/>
-            <circle cx="384" cy="52" r="5" fill="#a78bfa" filter="url(#glow-violet)"/>
-            <!-- antenna right -->
-            <rect x="512" y="58" width="8" height="28" rx="4" fill="#4f46e5" stroke="#818cf8" stroke-width="1"/>
-            <circle cx="516" cy="52" r="9" fill="#312e81" stroke="#818cf8" stroke-width="1.5" filter="url(#glow-violet)"/>
-            <circle cx="516" cy="52" r="5" fill="#a78bfa" filter="url(#glow-violet)"/>
-            <!-- head side bolts -->
-            <circle cx="345" cy="120" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-            <circle cx="555" cy="120" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-            <circle cx="345" cy="185" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-            <circle cx="555" cy="185" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-
-            <!-- ─── FACE PANEL ─── -->
-            <rect x="358" y="100" width="184" height="110" rx="14" fill="#0a0e1c" stroke="#4f46e5" stroke-width="1.5"/>
-
-            <!-- EYE LEFT — cyan -->
-            <rect x="375" y="118" width="64" height="42" rx="10" fill="#0e1a2e" stroke="#06b6d4" stroke-width="2"/>
-            <rect x="378" y="121" width="58" height="36" rx="8" fill="url(#eye-glow-l)" opacity="0.15"/>
-            <!-- eye iris -->
-            <circle cx="407" cy="139" r="14" fill="#0891b2" filter="url(#glow-cyan)"/>
-            <circle cx="407" cy="139" r="9"  fill="#06b6d4"/>
-            <circle cx="407" cy="139" r="5"  fill="#a5f3fc"/>
-            <!-- eye shine -->
-            <circle cx="412" cy="134" r="2.5" fill="white" opacity="0.9"/>
-            <!-- eye scan line -->
-            <rect x="376" y="137" width="62" height="3" rx="1.5" fill="rgba(6,182,212,0.4)"/>
-
-            <!-- EYE RIGHT — pink/magenta -->
-            <rect x="461" y="118" width="64" height="42" rx="10" fill="#1a0e2e" stroke="#e879f9" stroke-width="2"/>
-            <rect x="464" y="121" width="58" height="36" rx="8" fill="url(#eye-glow-r)" opacity="0.15"/>
-            <!-- eye iris -->
-            <circle cx="493" cy="139" r="14" fill="#a21caf" filter="url(#glow-pink)"/>
-            <circle cx="493" cy="139" r="9"  fill="#e879f9"/>
-            <circle cx="493" cy="139" r="5"  fill="#f0abfc"/>
-            <!-- eye shine -->
-            <circle cx="498" cy="134" r="2.5" fill="white" opacity="0.9"/>
-            <!-- eye scan line -->
-            <rect x="462" y="137" width="62" height="3" rx="1.5" fill="rgba(232,121,249,0.4)"/>
-
-            <!-- MOUTH / speaker grille -->
-            <rect x="375" y="176" width="150" height="26" rx="8" fill="#07091a" stroke="#4f46e5" stroke-width="1.5"/>
-            <!-- speaker slots -->
-            <rect x="382" y="180" width="10" height="18" rx="3" fill="#1e1b4b"/>
-            <rect x="397" y="180" width="10" height="18" rx="3" fill="#1e1b4b"/>
-            <rect x="412" y="180" width="10" height="18" rx="3" fill="#1e1b4b"/>
-            <rect x="427" y="180" width="10" height="18" rx="3" fill="#1e1b4b"/>
-            <rect x="442" y="180" width="10" height="18" rx="3" fill="#1e1b4b"/>
-            <rect x="457" y="180" width="10" height="18" rx="3" fill="#1e1b4b"/>
-            <rect x="472" y="180" width="10" height="18" rx="3" fill="#1e1b4b"/>
-            <rect x="487" y="180" width="10" height="18" rx="3" fill="#1e1b4b"/>
-            <rect x="502" y="180" width="10" height="18" rx="3" fill="#1e1b4b"/>
-            <!-- mouth glow line -->
-            <rect x="375" y="200" width="150" height="3" rx="1.5" fill="rgba(99,102,241,0.5)" filter="url(#glow-violet)"/>
-
-            <!-- ─── FLOATING TAGS around the robot ─── -->
-            <!-- top right tag -->
-            <g opacity="0.55" transform="rotate(12, 680, 130)" filter="url(#glow-violet)">
-              <text x="620" y="148" font-family="'Arial Black',sans-serif" font-size="22" font-weight="900"
-                    fill="none" stroke="#818cf8" stroke-width="2.5" stroke-linejoin="round">WRITE</text>
-              <text x="622" y="148" font-family="'Arial Black',sans-serif" font-size="22" font-weight="900"
-                    fill="rgba(99,102,241,0.3)">WRITE</text>
-            </g>
-            <!-- bottom left tag -->
-            <g opacity="0.45" transform="rotate(-6, 130, 390)" filter="url(#glow-cyan)">
-              <text x="60" y="408" font-family="'Arial Black',sans-serif" font-size="20" font-weight="900"
-                    fill="none" stroke="#06b6d4" stroke-width="2" stroke-linejoin="round">CITE</text>
-              <text x="62" y="408" font-family="'Arial Black',sans-serif" font-size="20" font-weight="900"
-                    fill="rgba(6,182,212,0.25)">CITE</text>
-            </g>
-            <!-- far right tag -->
-            <g opacity="0.4" transform="rotate(-14, 780, 350)" filter="url(#glow-pink)">
-              <text x="710" y="368" font-family="'Arial Black',sans-serif" font-size="18" font-weight="900"
-                    fill="none" stroke="#e879f9" stroke-width="2" stroke-linejoin="round">THINK</text>
-              <text x="712" y="368" font-family="'Arial Black',sans-serif" font-size="18" font-weight="900"
-                    fill="rgba(232,121,249,0.25)">THINK</text>
-            </g>
-
-            <!-- ─── AMBIENT PARTICLES ─── -->
-            <g filter="url(#glow-cyan)" opacity="0.6">
-              <circle cx="760" cy="180" r="3" fill="#06b6d4"/>
-              <circle cx="780" cy="210" r="2" fill="#a5f3fc"/>
-              <circle cx="750" cy="240" r="2.5" fill="#06b6d4"/>
-              <circle cx="800" cy="160" r="1.5" fill="#67e8f9"/>
-            </g>
-            <g filter="url(#glow-violet)" opacity="0.5">
-              <circle cx="140" cy="310" r="3"   fill="#818cf8"/>
-              <circle cx="118" cy="280" r="2"   fill="#c4b5fd"/>
-              <circle cx="155" cy="340" r="2.5" fill="#a78bfa"/>
-            </g>
-            <g filter="url(#glow-pink)" opacity="0.4">
-              <circle cx="820" cy="420" r="3" fill="#f0abfc"/>
-              <circle cx="840" cy="390" r="2" fill="#e879f9"/>
-              <circle cx="800" cy="445" r="2" fill="#f5d0fe"/>
-            </g>
-
-          </svg>
-        </div>
-        <!-- ════════════════════════════════ -->
-
-        <!-- title block -->
-        <div class="landing-title-block">
-            <h1>AGENT<span class="accent">43</span></h1>
-            <div class="tagline">AI · Academic · Writing · System</div>
-        </div>
-
-        <!-- discipline pills -->
-        <div class="landing-pills">
-            <span class="landing-pill active">International Business</span>
-            <span class="landing-pill active">International Marketing</span>
-            <span class="landing-pill active">Health &amp; Social Care</span>
-            <span class="landing-pill">9 Specialist Agents</span>
-            <span class="landing-pill">Zero Hallucinations</span>
-        </div>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ── Auth card (rendered via Streamlit widgets, below the landing art) ──
-    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+    # Auth card rendered via st.markdown + Streamlit widgets below the iframe
     col1, col2, col3 = st.columns([1.4, 1, 1.4])
     with col2:
         st.markdown("""
-        <div class="landing-auth-card">
-            <div class="landing-auth-logo">A · G · E · N · T · 43</div>
-            <div class="landing-auth-title">Restricted Access</div>
-            <div class="landing-auth-sub">Enter your passkey to continue</div>
+        <div class="auth-card">
+            <div class="auth-logo">A &middot; G &middot; E &middot; N &middot; T &middot; 43</div>
+            <div class="auth-title">Restricted Access</div>
+            <div class="auth-subtitle">Enter your passkey to continue</div>
         </div>
         """, unsafe_allow_html=True)
-        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
         pwd = st.text_input("Password", type="password", label_visibility="collapsed",
                             placeholder="Enter access password...")
         if st.button("Enter System", use_container_width=True):
