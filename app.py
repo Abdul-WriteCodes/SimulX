@@ -2091,476 +2091,408 @@ def inject_css():
     </style>
     """, unsafe_allow_html=True)
 
-
 # ─────────────────────────────────────────────
 #  AUTH
 # ─────────────────────────────────────────────
 
-LANDING_HTML = """<!DOCTYPE html>
+def _build_landing_html(error=False):
+    err_display = "block" if error else "none"
+    return f"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-* {{ margin:0; padding:0; box-sizing:border-box; }}
+*{{margin:0;padding:0;box-sizing:border-box}}
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
 
-html, body {{
-  width:100%; height:100%;
+html{{
   background:#05070d;
   font-family:'JetBrains Mono',monospace;
+  min-height:100%;
+}}
+body{{
+  background:#05070d;
+  min-height:100vh;
+  position:relative;
   overflow-x:hidden;
 }}
 
-body::before {{
-  content:'';
-  position:fixed; inset:0;
-  background-image:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);
-  pointer-events:none; z-index:0;
+/* scanlines */
+body::after{{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:999;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);
 }}
 
-.glow {{ position:absolute; border-radius:50%; filter:blur(100px); pointer-events:none; }}
-.g1 {{ width:600px;height:600px; background:radial-gradient(circle,rgba(99,102,241,0.13) 0%,transparent 70%); top:-200px;left:50%;transform:translateX(-50%); }}
-.g2 {{ width:350px;height:350px; background:radial-gradient(circle,rgba(236,72,153,0.08) 0%,transparent 70%); top:150px;right:-80px; }}
-.g3 {{ width:300px;height:300px; background:radial-gradient(circle,rgba(6,182,212,0.07) 0%,transparent 70%); top:250px;left:-80px; }}
+/* glows */
+.g{{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0}}
+.g1{{width:500px;height:500px;top:-180px;left:50%;transform:translateX(-50%);
+  background:radial-gradient(circle,rgba(99,102,241,0.14) 0%,transparent 70%)}}
+.g2{{width:320px;height:320px;top:30%;right:-100px;
+  background:radial-gradient(circle,rgba(236,72,153,0.08) 0%,transparent 70%)}}
+.g3{{width:280px;height:280px;top:40%;left:-80px;
+  background:radial-gradient(circle,rgba(6,182,212,0.07) 0%,transparent 70%)}}
 
-.grid-floor {{
-  position:absolute; bottom:0;left:0;right:0;height:160px;
+/* grid floor */
+.gf{{
+  position:fixed;bottom:0;left:0;right:0;height:180px;pointer-events:none;z-index:0;
   background:
     linear-gradient(to top,rgba(5,7,13,1) 0%,transparent 100%),
-    repeating-linear-gradient(90deg,rgba(99,102,241,0.05) 0px,rgba(99,102,241,0.05) 1px,transparent 1px,transparent 55px),
-    repeating-linear-gradient(0deg,rgba(99,102,241,0.05) 0px,rgba(99,102,241,0.05) 1px,transparent 1px,transparent 55px);
-  pointer-events:none; z-index:1;
+    repeating-linear-gradient(90deg,rgba(99,102,241,0.05) 0,rgba(99,102,241,0.05) 1px,transparent 1px,transparent 50px),
+    repeating-linear-gradient(0deg,rgba(99,102,241,0.05) 0,rgba(99,102,241,0.05) 1px,transparent 1px,transparent 50px);
 }}
 
-.wrap {{
-  position:relative; z-index:2;
-  display:flex; flex-direction:column; align-items:center;
-  padding-bottom:2rem;
+/* layout */
+.page{{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;align-items:center;
+  width:100%;padding-bottom:3rem;
 }}
 
 /* top strip */
-.strip {{
-  width:100%; display:flex; justify-content:space-between; align-items:center;
-  padding:0.85rem 2rem;
+.strip{{
+  width:100%;display:flex;justify-content:space-between;align-items:center;
+  padding:.75rem 1.5rem;
   border-bottom:1px solid rgba(255,255,255,0.03);
+  flex-wrap:nowrap;overflow:hidden;
 }}
-.strip span {{ font-size:0.56rem; letter-spacing:0.24em; text-transform:uppercase; }}
-.strip .l {{ color:rgba(99,102,241,0.6); }}
-.strip .r {{ color:rgba(255,255,255,0.1); }}
+.sl{{font-size:.55rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(99,102,241,.6);white-space:nowrap}}
+.sr{{font-size:.55rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.1);white-space:nowrap}}
 
 /* mascot */
-.mascot {{ width:100%; max-width:860px; display:flex; justify-content:center; margin-top:0.3rem; }}
-.mascot svg {{
-  width:100%; height:auto; overflow:visible;
-  filter:drop-shadow(0 0 50px rgba(99,102,241,0.2)) drop-shadow(0 0 90px rgba(236,72,153,0.08));
+.mascot{{
+  width:100%;max-width:700px;padding:0 1rem;
+  margin-top:.5rem;
+}}
+.mascot svg{{
+  width:100%;height:auto;overflow:visible;
+  filter:drop-shadow(0 0 40px rgba(99,102,241,.22)) drop-shadow(0 0 80px rgba(236,72,153,.09));
 }}
 
 /* title */
-.title {{ text-align:center; margin-top:-0.3rem; }}
-.title h1 {{
-  font-size:clamp(1.8rem,4.5vw,3.4rem); font-weight:800;
-  color:#f1f5f9; letter-spacing:-0.02em; line-height:1; margin-bottom:0.3rem;
+.title{{text-align:center;padding:0 1rem;margin-top:-.5rem}}
+.title h1{{
+  font-size:clamp(2rem,8vw,3.5rem);font-weight:800;
+  color:#f1f5f9;letter-spacing:-.02em;line-height:1;margin-bottom:.3rem;
 }}
-.title h1 .o {{ color:transparent; -webkit-text-stroke:1.5px rgba(99,102,241,0.72); }}
-.title .sub {{ font-size:0.58rem; letter-spacing:0.22em; color:rgba(148,163,184,0.38); text-transform:uppercase; margin-bottom:1.2rem; }}
+.title h1 .o{{color:transparent;-webkit-text-stroke:1.5px rgba(99,102,241,.75)}}
+.tagline{{font-size:.55rem;letter-spacing:.22em;color:rgba(148,163,184,.38);text-transform:uppercase;margin-bottom:1.1rem}}
 
 /* pills */
-.pills {{ display:flex; gap:0.45rem; justify-content:center; flex-wrap:wrap; padding:0 1rem 1.6rem; }}
-.pill {{
-  background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);
-  border-radius:2px; padding:0.28rem 0.85rem;
-  font-size:0.56rem; letter-spacing:0.12em; text-transform:uppercase; color:rgba(148,163,184,0.38);
+.pills{{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap;padding:0 1rem .8rem}}
+.pill{{
+  background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);
+  border-radius:2px;padding:.25rem .75rem;
+  font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(148,163,184,.38);
 }}
-.pill.on {{ background:rgba(99,102,241,0.1); border-color:rgba(99,102,241,0.3); color:rgba(165,180,252,0.85); }}
+.pill.on{{background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.3);color:rgba(165,180,252,.85)}}
 
-/* ── AUTH FORM — embedded, no card shell ──────────────────────────── */
-.auth-form {{
-  width:100%; max-width:360px;
-  display:flex; flex-direction:column; align-items:center; gap:0;
-  position:relative;
-  padding:0 1rem;
+/* divider hairline */
+.hr{{
+  width:min(340px,90%);height:1px;margin:.2rem 0 1rem;
+  background:linear-gradient(90deg,transparent,rgba(99,102,241,.4),rgba(165,180,252,.5),rgba(99,102,241,.4),transparent);
 }}
 
-/* hairline rule above */
-.auth-rule {{
-  width:100%; height:1px;
-  background:linear-gradient(90deg,transparent,rgba(99,102,241,0.35),rgba(165,180,252,0.5),rgba(99,102,241,0.35),transparent);
-  margin-bottom:1.2rem;
+/* eyebrow */
+.eyebrow{{
+  font-size:.52rem;letter-spacing:.26em;text-transform:uppercase;
+  color:rgba(165,180,252,.35);margin-bottom:.85rem;text-align:center;
 }}
 
-.auth-eyebrow {{
-  font-size:0.54rem; letter-spacing:0.28em; text-transform:uppercase;
-  color:rgba(165,180,252,0.35); margin-bottom:1rem; text-align:center;
+/* form */
+.form{{width:min(340px,90%);display:flex;flex-direction:column;gap:.55rem}}
+
+.iw{{position:relative}}
+.iw::before{{
+  content:'';position:absolute;left:0;top:15%;height:70%;
+  width:1px;background:rgba(99,102,241,.55);
+}}
+input[type=password]{{
+  width:100%;padding:.65rem 1rem .65rem 1.3rem;
+  background:rgba(10,12,24,.9);
+  border:1px solid rgba(99,102,241,.22);border-radius:3px;
+  color:#e2e8f0;font-family:'JetBrains Mono',monospace;font-size:.78rem;
+  letter-spacing:.06em;outline:none;
+  -webkit-appearance:none;appearance:none;
+  transition:border-color .2s,box-shadow .2s;
+}}
+input[type=password]::placeholder{{color:rgba(71,85,105,.6);letter-spacing:.1em}}
+input[type=password]:focus{{
+  border-color:rgba(99,102,241,.55);
+  box-shadow:0 0 0 3px rgba(99,102,241,.08);
 }}
 
-.input-wrap {{
-  width:100%; position:relative; margin-bottom:0.65rem;
-}}
-.input-wrap::before {{
-  content:'';
-  position:absolute; left:0; top:50%; transform:translateY(-50%);
-  width:1px; height:60%; background:rgba(99,102,241,0.5);
-}}
-.auth-input {{
-  width:100%; padding:0.7rem 1rem 0.7rem 1.4rem;
-  background:rgba(10,12,24,0.85);
-  border:1px solid rgba(99,102,241,0.2);
-  border-radius:3px;
-  color:#e2e8f0; font-family:'JetBrains Mono',monospace; font-size:0.78rem;
-  letter-spacing:0.06em; outline:none;
-  transition:border-color 0.2s, box-shadow 0.2s;
-}}
-.auth-input::placeholder {{ color:rgba(71,85,105,0.6); letter-spacing:0.1em; }}
-.auth-input:focus {{
-  border-color:rgba(99,102,241,0.55);
-  box-shadow:0 0 0 3px rgba(99,102,241,0.08), inset 0 0 12px rgba(99,102,241,0.04);
-}}
-
-.auth-btn {{
-  width:100%; padding:0.7rem 1rem;
+button{{
+  width:100%;padding:.65rem 1rem;
   background:linear-gradient(135deg,#4338ca 0%,#6d28d9 100%);
-  border:none; border-radius:3px; cursor:pointer;
-  color:rgba(255,255,255,0.9); font-family:'JetBrains Mono',monospace;
-  font-size:0.7rem; font-weight:700; letter-spacing:0.18em; text-transform:uppercase;
-  transition:all 0.2s;
-  box-shadow:0 0 20px rgba(99,102,241,0.2), 0 0 0 1px rgba(99,102,241,0.25);
+  border:none;border-radius:3px;cursor:pointer;
+  color:rgba(255,255,255,.9);font-family:'JetBrains Mono',monospace;
+  font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  -webkit-appearance:none;appearance:none;
+  box-shadow:0 0 18px rgba(99,102,241,.22),0 0 0 1px rgba(99,102,241,.28);
+  transition:all .2s;
 }}
-.auth-btn:hover {{
-  transform:translateY(-1px);
-  box-shadow:0 6px 24px rgba(99,102,241,0.3), 0 0 0 1px rgba(165,180,252,0.3);
-  background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
-}}
-.auth-btn:active {{ transform:translateY(0); }}
+button:active{{transform:scale(.98)}}
 
-.auth-err {{
-  margin-top:0.6rem; font-size:0.62rem; letter-spacing:0.1em;
-  color:rgba(248,113,113,0.85); text-align:center; min-height:1rem;
+.err{{
+  display:{err_display};
+  font-size:.6rem;letter-spacing:.1em;
+  color:rgba(248,113,113,.9);text-align:center;margin-top:-.1rem;
 }}
 
-/* hairline rule below */
-.auth-rule-b {{
-  width:100%; height:1px;
-  background:linear-gradient(90deg,transparent,rgba(99,102,241,0.15),transparent);
-  margin-top:1.1rem;
+.hr2{{
+  width:min(340px,90%);height:1px;margin-top:.8rem;
+  background:linear-gradient(90deg,transparent,rgba(99,102,241,.15),transparent);
 }}
 </style>
 </head>
 <body>
+<div class="g g1"></div>
+<div class="g g2"></div>
+<div class="g g3"></div>
+<div class="gf"></div>
 
-<div class="glow g1"></div>
-<div class="glow g2"></div>
-<div class="glow g3"></div>
-<div class="grid-floor"></div>
+<div class="page">
 
-<div class="wrap">
+<div class="strip">
+  <span class="sl">Agent43 &middot; System v2.0</span>
+  <span class="sr">AI &middot; Academic &middot; Engine</span>
+</div>
 
-  <div class="strip">
-    <span class="l">Agent43 &middot; System v2.0</span>
-    <span class="r">Academic &middot; Intelligence &middot; Engine</span>
+<div class="mascot">
+<svg viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <filter id="gv" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="gc" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="gp" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="gs" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="20"/></filter>
+  <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e1b4b"/><stop offset="100%" stop-color="#0f0c24"/></linearGradient>
+  <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2d2a5e"/><stop offset="100%" stop-color="#1a1740"/></linearGradient>
+  <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0e7490"/><stop offset="100%" stop-color="#0c4a6e"/></linearGradient>
+  <linearGradient id="alg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#312e81"/><stop offset="100%" stop-color="#1e1b4b"/></linearGradient>
+  <linearGradient id="arg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1e1b4b"/><stop offset="100%" stop-color="#312e81"/></linearGradient>
+  <linearGradient id="spg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#c026d3"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient>
+  <radialGradient id="spb" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#f0abfc" stop-opacity="0.9"/><stop offset="50%" stop-color="#c026d3" stop-opacity="0.5"/><stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/></radialGradient>
+  <radialGradient id="elg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#a5f3fc"/><stop offset="60%" stop-color="#06b6d4" stop-opacity="0.8"/><stop offset="100%" stop-color="#0891b2" stop-opacity="0"/></radialGradient>
+  <radialGradient id="erg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#f0abfc"/><stop offset="60%" stop-color="#e879f9" stop-opacity="0.8"/><stop offset="100%" stop-color="#a21caf" stop-opacity="0"/></radialGradient>
+</defs>
+
+<!-- BIG 43 WALL TAG -->
+<g opacity="0.15" filter="url(#gp)"><text x="100" y="420" font-family="Arial Black,sans-serif" font-size="310" font-weight="900" fill="none" stroke="#c026d3" stroke-width="5" stroke-linejoin="round">43</text></g>
+<g opacity="0.05"><text x="106" y="426" font-family="Arial Black,sans-serif" font-size="310" font-weight="900" fill="none" stroke="#06b6d4" stroke-width="3" stroke-linejoin="round">43</text></g>
+
+<!-- SPLATTER -->
+<g opacity="0.22" filter="url(#gv)"><circle cx="168" cy="148" r="4" fill="#a78bfa"/><circle cx="153" cy="166" r="2.5" fill="#c4b5fd"/><circle cx="184" cy="160" r="3" fill="#818cf8"/><circle cx="143" cy="183" r="2" fill="#a78bfa"/><circle cx="198" cy="143" r="2" fill="#c4b5fd"/></g>
+
+<!-- SHADOW -->
+<ellipse cx="450" cy="492" rx="220" ry="16" fill="rgba(99,102,241,0.10)" filter="url(#gs)"/>
+
+<!-- LEGS -->
+<rect x="368" y="418" width="58" height="65" rx="6" fill="url(#bg)" stroke="#4f46e5" stroke-width="1.5"/>
+<rect x="375" y="421" width="44" height="6" rx="3" fill="rgba(99,102,241,0.26)"/>
+<rect x="365" y="458" width="64" height="12" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
+<rect x="357" y="479" width="76" height="18" rx="7" fill="#0f0c24" stroke="#4f46e5" stroke-width="1.5"/>
+<rect x="474" y="418" width="58" height="65" rx="6" fill="url(#bg)" stroke="#4f46e5" stroke-width="1.5"/>
+<rect x="481" y="421" width="44" height="6" rx="3" fill="rgba(99,102,241,0.26)"/>
+<rect x="471" y="458" width="64" height="12" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
+<rect x="468" y="479" width="76" height="18" rx="7" fill="#0f0c24" stroke="#4f46e5" stroke-width="1.5"/>
+
+<!-- TORSO -->
+<rect x="330" y="238" width="240" height="190" rx="18" fill="url(#bg)" stroke="#4f46e5" stroke-width="2"/>
+<rect x="340" y="250" width="220" height="5" rx="2" fill="rgba(99,102,241,0.2)"/>
+<!-- SCREEN -->
+<rect x="355" y="268" width="190" height="106" rx="10" fill="url(#sg)" stroke="#06b6d4" stroke-width="1.5" opacity="0.92"/>
+<text x="365" y="287" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.85)">analyzing_brief(context)...</text>
+<text x="365" y="299" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.6)">semantic_retrieval &#8594; OK</text>
+<text x="365" y="311" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.75)">agent_dispatch: ALPHA</text>
+<text x="365" y="323" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.5)">citation_index: 14 sources</text>
+<text x="365" y="335" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.7)">writing &#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9617;&#9617;</text>
+<text x="365" y="347" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.45)">originality_score: 91%</text>
+<text x="365" y="359" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.6)">export &#8594; .docx &#10003;</text>
+<rect x="365" y="365" width="6" height="8" rx="1" fill="#a5f3fc" opacity="0.9"/>
+<rect x="357" y="270" width="90" height="26" rx="5" fill="rgba(255,255,255,0.03)"/>
+<!-- BOLTS -->
+<circle cx="345" cy="264" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="555" cy="264" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="345" cy="418" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="555" cy="418" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<!-- VENTS -->
+<rect x="360" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="384" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="408" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="432" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="456" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="480" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="504" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+<rect x="360" y="413" width="162" height="3" rx="1.5" fill="rgba(99,102,241,0.42)" filter="url(#gv)"/>
+
+<!-- SHOULDERS -->
+<circle cx="330" cy="260" r="22" fill="#1e1b4b" stroke="#6366f1" stroke-width="2"/>
+<circle cx="330" cy="260" r="12" fill="#312e81" stroke="#818cf8" stroke-width="1.5"/>
+<circle cx="330" cy="260" r="5" fill="#a78bfa"/>
+<circle cx="570" cy="260" r="22" fill="#1e1b4b" stroke="#6366f1" stroke-width="2"/>
+<circle cx="570" cy="260" r="12" fill="#312e81" stroke="#818cf8" stroke-width="1.5"/>
+<circle cx="570" cy="260" r="5" fill="#a78bfa"/>
+
+<!-- LEFT ARM -->
+<g transform="rotate(-38,308,260)">
+<rect x="240" y="244" width="72" height="34" rx="12" fill="url(#alg)" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="252" cy="261" r="13" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
+<circle cx="252" cy="261" r="7" fill="#312e81" stroke="#818cf8" stroke-width="1"/>
+<rect x="178" y="246" width="78" height="28" rx="10" fill="url(#alg)" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="190" cy="260" r="11" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
+<rect x="148" y="246" width="46" height="30" rx="8" fill="#312e81" stroke="#6366f1" stroke-width="1.5"/>
+<line x1="156" y1="254" x2="156" y2="269" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="164" y1="252" x2="164" y2="271" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="172" y1="252" x2="172" y2="271" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="180" y1="254" x2="180" y2="269" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+</g>
+
+<!-- SPRAY CAN -->
+<rect x="90" y="82" width="34" height="80" rx="10" fill="url(#spg)" stroke="#c026d3" stroke-width="1.5" filter="url(#gp)"/>
+<rect x="90" y="107" width="34" height="28" fill="rgba(240,171,252,0.18)"/>
+<text x="107" y="126" font-family="Arial Black,sans-serif" font-size="9" font-weight="900" fill="white" text-anchor="middle" opacity="0.9">43</text>
+<rect x="95" y="74" width="24" height="12" rx="5" fill="#e879f9" stroke="#f0abfc" stroke-width="1"/>
+<rect x="107" y="66" width="8" height="12" rx="3" fill="#f5d0fe"/>
+<g filter="url(#gp)" opacity="0.88">
+<ellipse cx="93" cy="54" rx="28" ry="20" fill="url(#spb)" opacity="0.72"/>
+<ellipse cx="76" cy="40" rx="18" ry="13" fill="rgba(192,38,211,0.5)"/>
+<ellipse cx="113" cy="42" rx="15" ry="10" fill="rgba(124,58,237,0.5)"/>
+<circle cx="58" cy="34" r="3.5" fill="#f0abfc" opacity="0.7"/>
+<circle cx="70" cy="24" r="2.5" fill="#e879f9" opacity="0.6"/>
+<circle cx="83" cy="18" r="2" fill="#c026d3" opacity="0.5"/>
+<circle cx="98" cy="20" r="3" fill="#a78bfa" opacity="0.6"/>
+<circle cx="113" cy="26" r="2" fill="#f0abfc" opacity="0.5"/>
+<circle cx="48" cy="46" r="2" fill="#e879f9" opacity="0.4"/>
+<circle cx="124" cy="37" r="2.5" fill="#c4b5fd" opacity="0.5"/>
+</g>
+
+<!-- GRAFFITI TEXT -->
+<g filter="url(#gp)" opacity="0.9">
+<text x="150" y="48" font-family="Arial Black,sans-serif" font-size="36" font-weight="900" fill="none" stroke="#c026d3" stroke-width="3.5" stroke-linejoin="round" transform="rotate(-7,150,48)">AGENT</text>
+<text x="152" y="48" font-family="Arial Black,sans-serif" font-size="36" font-weight="900" fill="rgba(192,38,211,0.32)" transform="rotate(-7,150,48)">AGENT</text>
+</g>
+
+<!-- RIGHT ARM -->
+<g transform="rotate(18,592,260)">
+<rect x="590" y="244" width="72" height="34" rx="12" fill="url(#arg)" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="648" cy="261" r="13" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
+<circle cx="648" cy="261" r="7" fill="#312e81" stroke="#818cf8" stroke-width="1"/>
+<rect x="644" y="246" width="78" height="28" rx="10" fill="url(#arg)" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="710" cy="260" r="11" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
+<rect x="706" y="244" width="46" height="32" rx="8" fill="#312e81" stroke="#6366f1" stroke-width="1.5"/>
+<line x1="714" y1="252" x2="714" y2="269" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="722" y1="250" x2="722" y2="271" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="730" y1="250" x2="730" y2="271" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="738" y1="252" x2="738" y2="269" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+</g>
+
+<!-- NECK -->
+<rect x="414" y="200" width="72" height="42" rx="6" fill="#1a1740" stroke="#4f46e5" stroke-width="1.5"/>
+<rect x="414" y="209" width="72" height="5" rx="2" fill="rgba(99,102,241,0.26)"/>
+<rect x="414" y="220" width="72" height="5" rx="2" fill="rgba(99,102,241,0.20)"/>
+<rect x="414" y="231" width="72" height="5" rx="2" fill="rgba(99,102,241,0.14)"/>
+
+<!-- HEAD -->
+<rect x="340" y="62" width="220" height="145" rx="22" fill="url(#hg)" stroke="#6366f1" stroke-width="2.5"/>
+<rect x="350" y="72" width="200" height="6" rx="3" fill="rgba(99,102,241,0.26)"/>
+<!-- ANTENNAS -->
+<rect x="380" y="40" width="8" height="28" rx="4" fill="#4f46e5" stroke="#818cf8" stroke-width="1"/>
+<circle cx="384" cy="34" r="9" fill="#312e81" stroke="#818cf8" stroke-width="1.5" filter="url(#gv)"/>
+<circle cx="384" cy="34" r="5" fill="#a78bfa" filter="url(#gv)"/>
+<rect x="512" y="40" width="8" height="28" rx="4" fill="#4f46e5" stroke="#818cf8" stroke-width="1"/>
+<circle cx="516" cy="34" r="9" fill="#312e81" stroke="#818cf8" stroke-width="1.5" filter="url(#gv)"/>
+<circle cx="516" cy="34" r="5" fill="#a78bfa" filter="url(#gv)"/>
+<!-- HEAD BOLTS -->
+<circle cx="345" cy="102" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="555" cy="102" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="345" cy="168" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<circle cx="555" cy="168" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
+<!-- FACE -->
+<rect x="358" y="82" width="184" height="112" rx="14" fill="#0a0e1c" stroke="#4f46e5" stroke-width="1.5"/>
+<!-- EYE L -->
+<rect x="375" y="98" width="64" height="42" rx="10" fill="#0e1a2e" stroke="#06b6d4" stroke-width="2"/>
+<rect x="378" y="101" width="58" height="36" rx="8" fill="url(#elg)" opacity="0.13"/>
+<circle cx="407" cy="119" r="14" fill="#0891b2" filter="url(#gc)"/>
+<circle cx="407" cy="119" r="9" fill="#06b6d4"/>
+<circle cx="407" cy="119" r="5" fill="#a5f3fc"/>
+<circle cx="412" cy="114" r="2.5" fill="white" opacity="0.9"/>
+<rect x="376" y="117" width="62" height="3" rx="1.5" fill="rgba(6,182,212,0.36)"/>
+<!-- EYE R -->
+<rect x="461" y="98" width="64" height="42" rx="10" fill="#1a0e2e" stroke="#e879f9" stroke-width="2"/>
+<rect x="464" y="101" width="58" height="36" rx="8" fill="url(#erg)" opacity="0.13"/>
+<circle cx="493" cy="119" r="14" fill="#a21caf" filter="url(#gp)"/>
+<circle cx="493" cy="119" r="9" fill="#e879f9"/>
+<circle cx="493" cy="119" r="5" fill="#f0abfc"/>
+<circle cx="498" cy="114" r="2.5" fill="white" opacity="0.9"/>
+<rect x="462" y="117" width="62" height="3" rx="1.5" fill="rgba(232,121,249,0.36)"/>
+<!-- MOUTH -->
+<rect x="375" y="158" width="150" height="26" rx="8" fill="#07091a" stroke="#4f46e5" stroke-width="1.5"/>
+<rect x="382" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="397" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="412" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="427" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="442" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="457" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="472" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="487" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="502" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
+<rect x="375" y="182" width="150" height="3" rx="1.5" fill="rgba(99,102,241,0.48)" filter="url(#gv)"/>
+
+<!-- FLOATING TAGS -->
+<g opacity="0.5" transform="rotate(12,678,120)" filter="url(#gv)">
+<text x="618" y="137" font-family="Arial Black,sans-serif" font-size="22" font-weight="900" fill="none" stroke="#818cf8" stroke-width="2.5" stroke-linejoin="round">WRITE</text>
+<text x="620" y="137" font-family="Arial Black,sans-serif" font-size="22" font-weight="900" fill="rgba(99,102,241,0.28)">WRITE</text>
+</g>
+<g opacity="0.4" transform="rotate(-6,128,376)" filter="url(#gc)">
+<text x="58" y="392" font-family="Arial Black,sans-serif" font-size="20" font-weight="900" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linejoin="round">CITE</text>
+<text x="60" y="392" font-family="Arial Black,sans-serif" font-size="20" font-weight="900" fill="rgba(6,182,212,0.22)">CITE</text>
+</g>
+<g opacity="0.36" transform="rotate(-14,775,334)" filter="url(#gp)">
+<text x="705" y="352" font-family="Arial Black,sans-serif" font-size="18" font-weight="900" fill="none" stroke="#e879f9" stroke-width="2" stroke-linejoin="round">THINK</text>
+<text x="707" y="352" font-family="Arial Black,sans-serif" font-size="18" font-weight="900" fill="rgba(232,121,249,0.22)">THINK</text>
+</g>
+<!-- PARTICLES -->
+<g filter="url(#gc)" opacity="0.56"><circle cx="758" cy="170" r="3" fill="#06b6d4"/><circle cx="778" cy="200" r="2" fill="#a5f3fc"/><circle cx="748" cy="230" r="2.5" fill="#06b6d4"/></g>
+<g filter="url(#gv)" opacity="0.46"><circle cx="138" cy="298" r="3" fill="#818cf8"/><circle cx="116" cy="268" r="2" fill="#c4b5fd"/><circle cx="153" cy="328" r="2.5" fill="#a78bfa"/></g>
+<g filter="url(#gp)" opacity="0.36"><circle cx="818" cy="410" r="3" fill="#f0abfc"/><circle cx="838" cy="380" r="2" fill="#e879f9"/></g>
+</svg>
+</div>
+
+<div class="title">
+  <h1>AGENT<span class="o">43</span></h1>
+  <div class="tagline">AI &middot; Academic &middot; Writing &middot; System</div>
+</div>
+
+<div class="pills">
+  <span class="pill on">Intl. Business</span>
+  <span class="pill on">Intl. Marketing</span>
+  <span class="pill on">Health &amp; Social Care</span>
+  <span class="pill">9 Agents</span>
+  <span class="pill">Zero Hallucinations</span>
+</div>
+
+<div class="hr"></div>
+<div class="eyebrow">&#8212; Restricted Access &#8212;</div>
+
+<div class="form">
+  <div class="iw">
+    <input type="password" id="pwd" placeholder="Enter access password" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')doAuth()"/>
   </div>
+  <button onclick="doAuth()">Enter System &nbsp;&#x2192;</button>
+  <div class="err" id="err">Incorrect password. Try again.</div>
+</div>
 
-  <div class="mascot">
-  <svg viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <filter id="gv" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="5" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <filter id="gc" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="4" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <filter id="gp" x="-60%" y="-60%" width="220%" height="220%">
-      <feGaussianBlur stdDeviation="9" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <filter id="gs" x="-80%" y="-80%" width="260%" height="260%">
-      <feGaussianBlur stdDeviation="20"/>
-    </filter>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1e1b4b"/><stop offset="100%" stop-color="#0f0c24"/>
-    </linearGradient>
-    <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#2d2a5e"/><stop offset="100%" stop-color="#1a1740"/>
-    </linearGradient>
-    <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0e7490"/><stop offset="100%" stop-color="#0c4a6e"/>
-    </linearGradient>
-    <linearGradient id="alg" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#312e81"/><stop offset="100%" stop-color="#1e1b4b"/>
-    </linearGradient>
-    <linearGradient id="arg" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#1e1b4b"/><stop offset="100%" stop-color="#312e81"/>
-    </linearGradient>
-    <linearGradient id="spg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#c026d3"/><stop offset="100%" stop-color="#7c3aed"/>
-    </linearGradient>
-    <radialGradient id="spb" cx="30%" cy="30%" r="70%">
-      <stop offset="0%"   stop-color="#f0abfc" stop-opacity="0.9"/>
-      <stop offset="50%"  stop-color="#c026d3" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="elg" cx="50%" cy="50%" r="50%">
-      <stop offset="0%"   stop-color="#a5f3fc"/>
-      <stop offset="60%"  stop-color="#06b6d4" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#0891b2" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="erg" cx="50%" cy="50%" r="50%">
-      <stop offset="0%"   stop-color="#f0abfc"/>
-      <stop offset="60%"  stop-color="#e879f9" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#a21caf" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-
-  <!-- BIG 43 WALL TAG -->
-  <g opacity="0.15" filter="url(#gp)">
-    <text x="100" y="420" font-family="Arial Black,sans-serif" font-size="310" font-weight="900"
-      fill="none" stroke="#c026d3" stroke-width="5" stroke-linejoin="round">43</text>
-  </g>
-  <g opacity="0.05">
-    <text x="106" y="426" font-family="Arial Black,sans-serif" font-size="310" font-weight="900"
-      fill="none" stroke="#06b6d4" stroke-width="3" stroke-linejoin="round">43</text>
-  </g>
-
-  <!-- SPLATTER -->
-  <g opacity="0.22" filter="url(#gv)">
-    <circle cx="168" cy="148" r="4"   fill="#a78bfa"/>
-    <circle cx="153" cy="166" r="2.5" fill="#c4b5fd"/>
-    <circle cx="184" cy="160" r="3"   fill="#818cf8"/>
-    <circle cx="143" cy="183" r="2"   fill="#a78bfa"/>
-    <circle cx="198" cy="143" r="2"   fill="#c4b5fd"/>
-  </g>
-
-  <!-- GROUND SHADOW -->
-  <ellipse cx="450" cy="492" rx="220" ry="16" fill="rgba(99,102,241,0.10)" filter="url(#gs)"/>
-
-  <!-- LEGS -->
-  <rect x="368" y="418" width="58" height="65" rx="6" fill="url(#bg)" stroke="#4f46e5" stroke-width="1.5"/>
-  <rect x="375" y="421" width="44" height="6"  rx="3" fill="rgba(99,102,241,0.26)"/>
-  <rect x="365" y="458" width="64" height="12" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
-  <rect x="357" y="479" width="76" height="18" rx="7" fill="#0f0c24" stroke="#4f46e5" stroke-width="1.5"/>
-  <rect x="361" y="482" width="68" height="4"  rx="2" fill="rgba(99,102,241,0.16)"/>
-  <rect x="474" y="418" width="58" height="65" rx="6" fill="url(#bg)" stroke="#4f46e5" stroke-width="1.5"/>
-  <rect x="481" y="421" width="44" height="6"  rx="3" fill="rgba(99,102,241,0.26)"/>
-  <rect x="471" y="458" width="64" height="12" rx="6" fill="#1e1b4b" stroke="#6366f1" stroke-width="1"/>
-  <rect x="468" y="479" width="76" height="18" rx="7" fill="#0f0c24" stroke="#4f46e5" stroke-width="1.5"/>
-  <rect x="472" y="482" width="68" height="4"  rx="2" fill="rgba(99,102,241,0.16)"/>
-
-  <!-- TORSO -->
-  <rect x="330" y="238" width="240" height="190" rx="18" fill="url(#bg)" stroke="#4f46e5" stroke-width="2"/>
-  <rect x="340" y="250" width="220" height="5"   rx="2" fill="rgba(99,102,241,0.2)"/>
-  <!-- CHEST SCREEN -->
-  <rect x="355" y="268" width="190" height="106" rx="10" fill="url(#sg)" stroke="#06b6d4" stroke-width="1.5" opacity="0.92"/>
-  <text x="365" y="287" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.85)">analyzing_brief(context)...</text>
-  <text x="365" y="299" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.6)">semantic_retrieval &#8594; OK</text>
-  <text x="365" y="311" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.75)">agent_dispatch: ALPHA</text>
-  <text x="365" y="323" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.5)">citation_index: 14 sources</text>
-  <text x="365" y="335" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.7)">writing &#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9617;&#9617;</text>
-  <text x="365" y="347" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.45)">originality_score: 91&#37;</text>
-  <text x="365" y="359" font-family="JetBrains Mono,monospace" font-size="7.5" fill="rgba(165,243,252,0.6)">export &#8594; .docx &#10003;</text>
-  <rect x="365" y="365" width="6" height="8" rx="1" fill="#a5f3fc" opacity="0.9"/>
-  <rect x="357" y="270" width="90" height="26" rx="5" fill="rgba(255,255,255,0.03)"/>
-  <!-- VENTS -->
-  <rect x="345" y="264" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-  <circle cx="345" cy="264" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-  <circle cx="555" cy="264" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-  <circle cx="345" cy="418" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-  <circle cx="555" cy="418" r="5" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-  <rect x="360" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-  <rect x="384" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-  <rect x="408" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-  <rect x="432" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-  <rect x="456" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-  <rect x="480" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-  <rect x="504" y="394" width="18" height="20" rx="3" fill="#0a0e1a" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
-  <rect x="360" y="413" width="162" height="3" rx="1.5" fill="rgba(99,102,241,0.42)" filter="url(#gv)"/>
-
-  <!-- SHOULDERS -->
-  <circle cx="330" cy="260" r="22" fill="#1e1b4b" stroke="#6366f1" stroke-width="2"/>
-  <circle cx="330" cy="260" r="12" fill="#312e81" stroke="#818cf8" stroke-width="1.5"/>
-  <circle cx="330" cy="260" r="5"  fill="#a78bfa"/>
-  <circle cx="570" cy="260" r="22" fill="#1e1b4b" stroke="#6366f1" stroke-width="2"/>
-  <circle cx="570" cy="260" r="12" fill="#312e81" stroke="#818cf8" stroke-width="1.5"/>
-  <circle cx="570" cy="260" r="5"  fill="#a78bfa"/>
-
-  <!-- LEFT ARM -->
-  <g transform="rotate(-38,308,260)">
-    <rect x="240" y="244" width="72" height="34" rx="12" fill="url(#alg)" stroke="#4f46e5" stroke-width="1.5"/>
-    <circle cx="252" cy="261" r="13" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
-    <circle cx="252" cy="261" r="7"  fill="#312e81" stroke="#818cf8" stroke-width="1"/>
-    <rect x="178" y="246" width="78" height="28" rx="10" fill="url(#alg)" stroke="#4f46e5" stroke-width="1.5"/>
-    <circle cx="190" cy="260" r="11" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
-    <rect x="148" y="246" width="46" height="30" rx="8" fill="#312e81" stroke="#6366f1" stroke-width="1.5"/>
-    <line x1="156" y1="254" x2="156" y2="269" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="164" y1="252" x2="164" y2="271" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="172" y1="252" x2="172" y2="271" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="180" y1="254" x2="180" y2="269" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-  </g>
-
-  <!-- SPRAY CAN -->
-  <rect x="90" y="82"  width="34" height="80" rx="10" fill="url(#spg)" stroke="#c026d3" stroke-width="1.5" filter="url(#gp)"/>
-  <rect x="90" y="107" width="34" height="28" fill="rgba(240,171,252,0.18)"/>
-  <text x="107" y="126" font-family="Arial Black,sans-serif" font-size="9" font-weight="900" fill="white" text-anchor="middle" opacity="0.9">43</text>
-  <rect x="95" y="74"  width="24" height="12" rx="5" fill="#e879f9" stroke="#f0abfc" stroke-width="1"/>
-  <rect x="107" y="66" width="8"  height="12" rx="3" fill="#f5d0fe"/>
-  <g filter="url(#gp)" opacity="0.88">
-    <ellipse cx="93"  cy="54" rx="28" ry="20" fill="url(#spb)" opacity="0.72"/>
-    <ellipse cx="76"  cy="40" rx="18" ry="13" fill="rgba(192,38,211,0.5)"/>
-    <ellipse cx="113" cy="42" rx="15" ry="10" fill="rgba(124,58,237,0.5)"/>
-    <circle cx="58"   cy="34" r="3.5" fill="#f0abfc" opacity="0.7"/>
-    <circle cx="70"   cy="24" r="2.5" fill="#e879f9" opacity="0.6"/>
-    <circle cx="83"   cy="18" r="2"   fill="#c026d3" opacity="0.5"/>
-    <circle cx="98"   cy="20" r="3"   fill="#a78bfa" opacity="0.6"/>
-    <circle cx="113"  cy="26" r="2"   fill="#f0abfc" opacity="0.5"/>
-    <circle cx="48"   cy="46" r="2"   fill="#e879f9" opacity="0.4"/>
-    <circle cx="124"  cy="37" r="2.5" fill="#c4b5fd" opacity="0.5"/>
-  </g>
-
-  <!-- GRAFFITI TEXT -->
-  <g filter="url(#gp)" opacity="0.9">
-    <text x="150" y="48" font-family="Arial Black,sans-serif" font-size="36" font-weight="900"
-      fill="none" stroke="#c026d3" stroke-width="3.5" stroke-linejoin="round"
-      transform="rotate(-7,150,48)">AGENT</text>
-    <text x="152" y="48" font-family="Arial Black,sans-serif" font-size="36" font-weight="900"
-      fill="rgba(192,38,211,0.32)"
-      transform="rotate(-7,150,48)">AGENT</text>
-  </g>
-
-  <!-- RIGHT ARM -->
-  <g transform="rotate(18,592,260)">
-    <rect x="590" y="244" width="72" height="34" rx="12" fill="url(#arg)" stroke="#4f46e5" stroke-width="1.5"/>
-    <circle cx="648" cy="261" r="13" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
-    <circle cx="648" cy="261" r="7"  fill="#312e81" stroke="#818cf8" stroke-width="1"/>
-    <rect x="644" y="246" width="78" height="28" rx="10" fill="url(#arg)" stroke="#4f46e5" stroke-width="1.5"/>
-    <circle cx="710" cy="260" r="11" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
-    <rect x="706" y="244" width="46" height="32" rx="8" fill="#312e81" stroke="#6366f1" stroke-width="1.5"/>
-    <line x1="714" y1="252" x2="714" y2="269" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="722" y1="250" x2="722" y2="271" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="730" y1="250" x2="730" y2="271" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="738" y1="252" x2="738" y2="269" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
-  </g>
-
-  <!-- NECK -->
-  <rect x="414" y="200" width="72" height="42" rx="6" fill="#1a1740" stroke="#4f46e5" stroke-width="1.5"/>
-  <rect x="414" y="209" width="72" height="5" rx="2" fill="rgba(99,102,241,0.26)"/>
-  <rect x="414" y="220" width="72" height="5" rx="2" fill="rgba(99,102,241,0.20)"/>
-  <rect x="414" y="231" width="72" height="5" rx="2" fill="rgba(99,102,241,0.14)"/>
-
-  <!-- HEAD -->
-  <rect x="340" y="62" width="220" height="145" rx="22" fill="url(#hg)" stroke="#6366f1" stroke-width="2.5"/>
-  <rect x="350" y="72" width="200" height="6" rx="3" fill="rgba(99,102,241,0.26)"/>
-  <!-- ANTENNAS -->
-  <rect x="380" y="40" width="8" height="28" rx="4" fill="#4f46e5" stroke="#818cf8" stroke-width="1"/>
-  <circle cx="384" cy="34" r="9" fill="#312e81" stroke="#818cf8" stroke-width="1.5" filter="url(#gv)"/>
-  <circle cx="384" cy="34" r="5" fill="#a78bfa" filter="url(#gv)"/>
-  <rect x="512" y="40" width="8" height="28" rx="4" fill="#4f46e5" stroke="#818cf8" stroke-width="1"/>
-  <circle cx="516" cy="34" r="9" fill="#312e81" stroke="#818cf8" stroke-width="1.5" filter="url(#gv)"/>
-  <circle cx="516" cy="34" r="5" fill="#a78bfa" filter="url(#gv)"/>
-  <!-- HEAD BOLTS -->
-  <circle cx="345" cy="102" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-  <circle cx="555" cy="102" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-  <circle cx="345" cy="168" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-  <circle cx="555" cy="168" r="6" fill="#1e1b4b" stroke="#4f46e5" stroke-width="1.5"/>
-  <!-- FACE PANEL -->
-  <rect x="358" y="82" width="184" height="112" rx="14" fill="#0a0e1c" stroke="#4f46e5" stroke-width="1.5"/>
-  <!-- EYE LEFT cyan -->
-  <rect x="375" y="98"  width="64" height="42" rx="10" fill="#0e1a2e" stroke="#06b6d4" stroke-width="2"/>
-  <rect x="378" y="101" width="58" height="36" rx="8"  fill="url(#elg)" opacity="0.13"/>
-  <circle cx="407" cy="119" r="14" fill="#0891b2" filter="url(#gc)"/>
-  <circle cx="407" cy="119" r="9"  fill="#06b6d4"/>
-  <circle cx="407" cy="119" r="5"  fill="#a5f3fc"/>
-  <circle cx="412" cy="114" r="2.5" fill="white" opacity="0.9"/>
-  <rect x="376" y="117" width="62" height="3" rx="1.5" fill="rgba(6,182,212,0.36)"/>
-  <!-- EYE RIGHT magenta -->
-  <rect x="461" y="98"  width="64" height="42" rx="10" fill="#1a0e2e" stroke="#e879f9" stroke-width="2"/>
-  <rect x="464" y="101" width="58" height="36" rx="8"  fill="url(#erg)" opacity="0.13"/>
-  <circle cx="493" cy="119" r="14" fill="#a21caf" filter="url(#gp)"/>
-  <circle cx="493" cy="119" r="9"  fill="#e879f9"/>
-  <circle cx="493" cy="119" r="5"  fill="#f0abfc"/>
-  <circle cx="498" cy="114" r="2.5" fill="white" opacity="0.9"/>
-  <rect x="462" y="117" width="62" height="3" rx="1.5" fill="rgba(232,121,249,0.36)"/>
-  <!-- MOUTH -->
-  <rect x="375" y="158" width="150" height="26" rx="8" fill="#07091a" stroke="#4f46e5" stroke-width="1.5"/>
-  <rect x="382" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
-  <rect x="397" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
-  <rect x="412" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
-  <rect x="427" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
-  <rect x="442" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
-  <rect x="457" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
-  <rect x="472" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
-  <rect x="487" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
-  <rect x="502" y="162" width="10" height="18" rx="3" fill="#1e1b4b"/>
-  <rect x="375" y="182" width="150" height="3" rx="1.5" fill="rgba(99,102,241,0.48)" filter="url(#gv)"/>
-
-  <!-- FLOATING TAGS -->
-  <g opacity="0.5" transform="rotate(12,678,120)" filter="url(#gv)">
-    <text x="618" y="137" font-family="Arial Black,sans-serif" font-size="22" font-weight="900"
-      fill="none" stroke="#818cf8" stroke-width="2.5" stroke-linejoin="round">WRITE</text>
-    <text x="620" y="137" font-family="Arial Black,sans-serif" font-size="22" font-weight="900" fill="rgba(99,102,241,0.28)">WRITE</text>
-  </g>
-  <g opacity="0.4" transform="rotate(-6,128,376)" filter="url(#gc)">
-    <text x="58"  y="392" font-family="Arial Black,sans-serif" font-size="20" font-weight="900"
-      fill="none" stroke="#06b6d4" stroke-width="2" stroke-linejoin="round">CITE</text>
-    <text x="60"  y="392" font-family="Arial Black,sans-serif" font-size="20" font-weight="900" fill="rgba(6,182,212,0.22)">CITE</text>
-  </g>
-  <g opacity="0.36" transform="rotate(-14,775,334)" filter="url(#gp)">
-    <text x="705" y="352" font-family="Arial Black,sans-serif" font-size="18" font-weight="900"
-      fill="none" stroke="#e879f9" stroke-width="2" stroke-linejoin="round">THINK</text>
-    <text x="707" y="352" font-family="Arial Black,sans-serif" font-size="18" font-weight="900" fill="rgba(232,121,249,0.22)">THINK</text>
-  </g>
-
-  <!-- PARTICLES -->
-  <g filter="url(#gc)" opacity="0.56"><circle cx="758" cy="170" r="3" fill="#06b6d4"/><circle cx="778" cy="200" r="2" fill="#a5f3fc"/><circle cx="748" cy="230" r="2.5" fill="#06b6d4"/><circle cx="798" cy="150" r="1.5" fill="#67e8f9"/></g>
-  <g filter="url(#gv)" opacity="0.46"><circle cx="138" cy="298" r="3" fill="#818cf8"/><circle cx="116" cy="268" r="2" fill="#c4b5fd"/><circle cx="153" cy="328" r="2.5" fill="#a78bfa"/></g>
-  <g filter="url(#gp)" opacity="0.36"><circle cx="818" cy="410" r="3" fill="#f0abfc"/><circle cx="838" cy="380" r="2" fill="#e879f9"/></g>
-
-  </svg>
-  </div>
-
-  <!-- TITLE -->
-  <div class="title">
-    <h1>AGENT<span class="o">43</span></h1>
-    <div class="sub">AI &middot; Academic &middot; Writing &middot; System</div>
-  </div>
-
-  <!-- PILLS -->
-  <div class="pills">
-    <span class="pill on">International Business</span>
-    <span class="pill on">International Marketing</span>
-    <span class="pill on">Health &amp; Social Care</span>
-    <span class="pill">9 Specialist Agents</span>
-    <span class="pill">Zero Hallucinations</span>
-  </div>
-
-  <!-- AUTH FORM — seamlessly below, no card shell -->
-  <div class="auth-form">
-    <div class="auth-rule"></div>
-    <div class="auth-eyebrow">&#x2014; Restricted Access &#x2014;</div>
-
-    <div class="input-wrap">
-      <input
-        class="auth-input"
-        id="pwd"
-        type="password"
-        placeholder="Enter access password"
-        autocomplete="current-password"
-        onkeydown="if(event.key==='Enter') submit()"
-      />
-    </div>
-
-    <button class="auth-btn" onclick="submit()">Enter System &nbsp;&#x2192;</button>
-    <div class="auth-err" id="err"></div>
-    <div class="auth-rule-b"></div>
-  </div>
+<div class="hr2"></div>
 
 </div>
 
 <script>
-function submit() {{
-  var val = document.getElementById('pwd').value;
-  if (!val) return;
-  // Send password up to Streamlit parent via postMessage
-  window.parent.postMessage({{type:'agent43_auth', password: val}}, '*');
+function doAuth(){{
+  var p = document.getElementById('pwd').value;
+  if(!p) return;
+  window.parent.postMessage({{type:'a43',pwd:p}},  '*');
 }}
 </script>
 </body>
@@ -2571,40 +2503,39 @@ def auth_gate():
     if st.session_state.get("authenticated"):
         return True
 
-    # Listen for the postMessage from the iframe
-    pwd_attempt = st.query_params.get("_pwd", "")
-    if pwd_attempt == APP_PASSWORD:
-        st.session_state["authenticated"] = True
+    # Check if password was submitted via query param relay
+    q = st.query_params.get("_a43", "")
+    if q:
         st.query_params.clear()
-        st.rerun()
+        if q == APP_PASSWORD:
+            st.session_state["authenticated"] = True
+            st.rerun()
+        else:
+            # Re-render with error state
+            components.html(_build_landing_html(error=True), height=1080, scrolling=True)
+            st.markdown("""<script>
+            window.addEventListener('message',function(e){
+              if(e.data&&e.data.type==='a43'){
+                var u=new URL(window.location.href);
+                u.searchParams.set('_a43',e.data.pwd);
+                window.location.href=u.toString();
+              }
+            });
+            </script>""", unsafe_allow_html=True)
+            return False
 
-    # Render the full self-contained landing page
-    components.html(LANDING_HTML, height=860, scrolling=False)
+    components.html(_build_landing_html(error=False), height=1080, scrolling=True)
 
-    # Invisible JS bridge: relay postMessage from iframe → query param → rerun
-    st.markdown("""
-    <script>
-    window.addEventListener('message', function(e) {
-        if (e.data && e.data.type === 'agent43_auth') {
-            var url = new URL(window.location.href);
-            url.searchParams.set('_pwd', e.data.password);
-            window.location.href = url.toString();
-        }
+    # Parent-page message relay: iframe postMessage → query param → st.rerun
+    st.markdown("""<script>
+    window.addEventListener('message',function(e){
+      if(e.data&&e.data.type==='a43'){
+        var u=new URL(window.location.href);
+        u.searchParams.set('_a43',e.data.pwd);
+        window.location.href=u.toString();
+      }
     });
-    </script>
-    """, unsafe_allow_html=True)
-
-    # Also show a hidden fallback input for environments that block postMessage
-    with st.container():
-        st.markdown("<div style='display:none'>", unsafe_allow_html=True)
-        pwd = st.text_input("pwd_fallback", type="password", key="_fb_pwd", label_visibility="collapsed")
-        if pwd:
-            if pwd == APP_PASSWORD:
-                st.session_state["authenticated"] = True
-                st.rerun()
-            else:
-                st.session_state["_auth_err"] = True
-        st.markdown("</div>", unsafe_allow_html=True)
+    </script>""", unsafe_allow_html=True)
 
     return False
 
