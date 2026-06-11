@@ -175,24 +175,24 @@ st.divider()
 # ── Items ──
 st.markdown("#### Items Sold")
 
-if "items" not in st.session_state:
-    st.session_state.items = [{"name": "", "qty": 1, "unit_price": 0}]
+if "item_rows" not in st.session_state:
+    st.session_state.item_rows = [{"name": "", "qty": 1, "unit_price": 0}]
 
-for i, item in enumerate(st.session_state.items):
+for i, item in enumerate(st.session_state.item_rows):
     c1, c2, c3, c4 = st.columns([4, 1, 2, 0.6])
-    st.session_state.items[i]["name"]       = c1.text_input("Item name",   value=item["name"],       key=f"name_{i}",  label_visibility="collapsed", placeholder=f"Product name")
-    st.session_state.items[i]["qty"]        = c2.number_input("Qty",       value=item["qty"],        key=f"qty_{i}",   label_visibility="collapsed", min_value=1)
-    st.session_state.items[i]["unit_price"] = c3.number_input("Unit price",value=item["unit_price"], key=f"price_{i}", label_visibility="collapsed", min_value=0, step=100)
-    if c4.button("✕", key=f"del_{i}", help="Remove item") and len(st.session_state.items) > 1:
-        st.session_state.items.pop(i)
+    st.session_state.item_rows[i]["name"]       = c1.text_input("Item name",   value=item["name"],       key=f"name_{i}",  label_visibility="collapsed", placeholder=f"Product name")
+    st.session_state.item_rows[i]["qty"]        = c2.number_input("Qty",       value=item["qty"],        key=f"qty_{i}",   label_visibility="collapsed", min_value=1)
+    st.session_state.item_rows[i]["unit_price"] = c3.number_input("Unit price",value=item["unit_price"], key=f"price_{i}", label_visibility="collapsed", min_value=0, step=100)
+    if c4.button("✕", key=f"del_{i}", help="Remove item") and len(st.session_state.item_rows) > 1:
+        st.session_state.item_rows.pop(i)
         st.rerun()
 
 if st.button("＋ Add another item"):
-    st.session_state.items.append({"name": "", "qty": 1, "unit_price": 0})
+    st.session_state.item_rows.append({"name": "", "qty": 1, "unit_price": 0})
     st.rerun()
 
 # ── Total preview ──
-total = sum(it["qty"] * it["unit_price"] for it in st.session_state.items)
+total = sum(it["qty"] * it["unit_price"] for it in st.session_state.item_rows)
 st.markdown(f"<p style='text-align:right;font-size:18px;font-weight:700;color:#F5A623;'>Total: ₦{total:,.0f}</p>", unsafe_allow_html=True)
 
 st.divider()
@@ -201,12 +201,12 @@ st.divider()
 if st.button("🧾 Generate Receipt"):
     if not biz_name.strip():
         st.error("Please enter the business name.")
-    elif not any(it["name"].strip() for it in st.session_state.items):
+    elif not any(it["name"].strip() for it in st.session_state.item_rows):
         st.error("Please add at least one item.")
     else:
         date_str  = f"{receipt_date.strftime('%-d %b %Y')} · {receipt_time.strftime('%H:%M')}"
         sale_id   = gen_sale_id()
-        items     = [it for it in st.session_state.items if it["name"].strip() and it["unit_price"] > 0]
+        items     = [it for it in st.session_state.item_rows if it["name"].strip() and it["unit_price"] > 0]
         pdf_bytes = build_receipt(
             biz_name.strip(),
             customer.strip() or "Walk-in Customer",
@@ -226,4 +226,4 @@ if "pdf_bytes" in st.session_state:
         data=st.session_state["pdf_bytes"],
         file_name=f"receipt_{st.session_state['pdf_name']}.pdf",
         mime="application/pdf"
-    )
+        )
