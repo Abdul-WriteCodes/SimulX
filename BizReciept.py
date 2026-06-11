@@ -14,8 +14,9 @@ from reportlab.lib import colors
 @st.cache_resource
 def register_fonts():
     try:
-        pdfmetrics.registerFont(TTFont("DejaVu",      "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
-        pdfmetrics.registerFont(TTFont("DejaVu-Bold", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"))
+        base = os.path.dirname(os.path.abspath(__file__))
+        pdfmetrics.registerFont(TTFont("DejaVu",      os.path.join(base, "fonts", "DejaVuSans.ttf")))
+        pdfmetrics.registerFont(TTFont("DejaVu-Bold", os.path.join(base, "fonts", "DejaVuSans-Bold.ttf")))
         return True
     except Exception:
         return False
@@ -226,4 +227,4 @@ if "pdf_bytes" in st.session_state:
         data=st.session_state["pdf_bytes"],
         file_name=f"receipt_{st.session_state['pdf_name']}.pdf",
         mime="application/pdf"
-        )
+    )
