@@ -15,15 +15,17 @@ from reportlab.lib import colors
 def register_fonts():
     try:
         base = os.path.dirname(os.path.abspath(__file__))
-        pdfmetrics.registerFont(TTFont("DejaVu",      os.path.join(base, "fonts", "DejaVuSans.ttf")))
-        pdfmetrics.registerFont(TTFont("DejaVu-Bold", os.path.join(base, "fonts", "DejaVuSans-Bold.ttf")))
+        # Mirror exact same path BizTrack-OS uses: ../assets/
+        assets = os.path.join(base, "assets")
+        pdfmetrics.registerFont(TTFont("DejaVuSans",      os.path.join(assets, "DejaVuSans.ttf")))
+        pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", os.path.join(assets, "DejaVuSans-Bold.ttf")))
         return True
     except Exception:
         return False
 
 HAS_DEJAVU = register_fonts()
-FONT       = "DejaVu"       if HAS_DEJAVU else "Helvetica"
-FONT_BOLD  = "DejaVu-Bold"  if HAS_DEJAVU else "Helvetica-Bold"
+FONT       = "DejaVuSans"       if HAS_DEJAVU else "Helvetica"
+FONT_BOLD  = "DejaVuSans-Bold"  if HAS_DEJAVU else "Helvetica-Bold"
 
 
 def gen_sale_id():
