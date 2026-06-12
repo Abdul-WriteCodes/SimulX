@@ -13,19 +13,36 @@ from reportlab.lib import colors
 # ── Register fonts once ──
 @st.cache_resource
 def register_fonts():
-    try:
-        base = os.path.dirname(os.path.abspath(__file__))
-        # Mirror exact same path BizTrack-OS uses: ../assets/
-        assets = os.path.join(base, "assets")
-        pdfmetrics.registerFont(TTFont("DejaVuSans",      os.path.join(assets, "DejaVuSans.ttf")))
-        pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", os.path.join(assets, "DejaVuSans-Bold.ttf")))
-        return True
-    except Exception:
-        return False
+    base = os.path.dirname(os.path.abspath(__file__))
+    # Try every possible location
+    candidates = [
+        (os.path.join(base, "assets", "DejaVuSans.ttf"),
+         os.path.join(base, "assets", "DejaVuSans-Bold.ttf")),
+        (os.path.join(base, "fonts",  "DejaVuSans.ttf"),
+         os.path.join(base, "fonts",  "DejaVuSans-Bold.ttf")),
+        (os.path.join(base, "DejaVuSans.ttf"),
+         os.path.join(base, "DejaVuSans-Bold.ttf")),
+        ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
+    ]
+    for reg, bold in candidates:
+        if os.path.exists(reg) and os.path.exists(bold):
+            try:
+                pdfmetrics.registerFont(TTFont("DejaVuSans",      reg))
+                pdfmetrics.registerFont(TTFont("DejaVuSans-Bold",  bold))
+                return True
+            except Exception:
+                continue
+    return False
 
 HAS_DEJAVU = register_fonts()
-FONT       = "DejaVuSans"       if HAS_DEJAVU else "Helvetica"
-FONT_BOLD  = "DejaVuSans-Bold"  if HAS_DEJAVU else "Helvetica-Bold"
+FONT       = "DejaVuSans"      if HAS_DEJAVU else "Helvetica"
+FONT_BOLD  = "DejaVuSans-Bold" if HAS_DEJAVU else "Helvetica-Bold"
+
+# Debug — remove after confirming fonts load
+if not HAS_DEJAVU:
+    st.warning("⚠️ DejaVu fonts not found — ₦ symbol may not render. "
+               f"Looking in: {os.path.dirname(os.path.abspath(__file__))}")
 
 
 def gen_sale_id():
