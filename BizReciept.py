@@ -4,7 +4,7 @@ Streamlit app — generate branded prospect receipts instantly.
 """
 
 import streamlit as st
-import random, string, datetime, io
+import random, string, datetime, io, os
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -246,4 +246,4 @@ if "pdf_bytes" in st.session_state:
         data=st.session_state["pdf_bytes"],
         file_name=f"receipt_{st.session_state['pdf_name']}.pdf",
         mime="application/pdf"
-    )
+)
